@@ -42,7 +42,15 @@ const EMOJI_CATALOG = [
   { emoji: '🌟', name: 'Super Star', price: 12000 }, { emoji: '🪐', name: 'Planet', price: 13000 },
   { emoji: '🦚', name: 'Peacock', price: 14000 }, { emoji: '🦩', name: 'Flamingo', price: 15000 },
   { emoji: '🐲', name: 'Dragon Face', price: 16000 }, { emoji: '🌌', name: 'Galaxy', price: 18000 },
-];
+  // Rare space & magic collection
+  { emoji: '🌙', name: 'Moon', price: 10500 }, { emoji: '🌞', name: 'Sunshine', price: 11500 },
+  { emoji: '🌍', name: 'Planet Earth', price: 12500 }, { emoji: '💫', name: 'Sparkle Star', price: 12800 },
+  { emoji: '🔮', name: 'Crystal Ball', price: 13500 }, { emoji: '🌠', name: 'Shooting Star', price: 14500 },
+  { emoji: '☄️', name: 'Comet', price: 15500 }, { emoji: '🪄', name: 'Magic Wand', price: 15800 },
+  { emoji: '🧞', name: 'Genie', price: 16500 }, { emoji: '🌀', name: 'Cosmic Swirl', price: 16800 },
+  { emoji: '🏰', name: 'Castle', price: 17200 }, { emoji: '🎆', name: 'Fireworks', price: 17500 },
+  { emoji: '🧜', name: 'Mermaid', price: 17800 },
+].sort((a, b) => a.price - b.price);   // shop shows cheapest first
 const DEFAULT_EMOJI = '😀';
 
 /* ---------- Helpers ---------- */
@@ -165,9 +173,12 @@ function renderProfile() {
       btn.setAttribute('aria-label', (chosen ? 'Using ' : 'Use ') + item.name);
       btn.addEventListener('click', () => useEmoji(item.emoji));
     } else {
-      btn.textContent = 'Buy';
-      btn.setAttribute('aria-label', 'Buy ' + item.name + ' for ' + item.price + ' points');
-      btn.disabled = profile.points < item.price;
+      const short = item.price - profile.points;
+      const confirming = pendingBuy === item.emoji;
+      btn.textContent = short > 0 ? `Need ${short.toLocaleString()} more` : confirming ? 'Tap again to buy' : 'Buy';
+      if (confirming) btn.className = 'confirm';
+      btn.setAttribute('aria-label', confirming ? `Confirm: buy ${item.name}` : `Buy ${item.name} for ${item.price} points`);
+      btn.disabled = short > 0;
       btn.addEventListener('click', () => buyEmoji(item));
     }
     card.append(em, name, price, btn);
@@ -181,10 +192,30 @@ function useEmoji(emoji) {
   saveProfile();
 }
 
+// Buying takes two taps: "Buy" then "Tap again to buy" (within 5 seconds).
+// This is done on the page itself because some browsers and app wrappers
+// silently block confirm() pop-ups, which would cancel every purchase.
+let pendingBuy = null;
+let pendingBuyTimer = null;
+
+function clearPendingBuy() {
+  clearTimeout(pendingBuyTimer);
+  pendingBuy = null;
+  pendingBuyTimer = null;
+}
+
 function buyEmoji(item) {
   if (profile.ownedEmojis.includes(item.emoji)) return;        // never charge twice
   if (profile.points < item.price) return;
-  if (!window.confirm(`Buy ${item.emoji} ${item.name} for ${item.price.toLocaleString()} points?`)) return;
+  if (pendingBuy !== item.emoji) {
+    clearPendingBuy();
+    pendingBuy = item.emoji;
+    pendingBuyTimer = setTimeout(() => { clearPendingBuy(); renderProfile(); }, 5000);
+    renderProfile();
+    tone(600, 0.08);
+    return;
+  }
+  clearPendingBuy();
   profile.points -= item.price;
   profile.ownedEmojis.push(item.emoji);
   profile.selectedEmoji = item.emoji;

@@ -25,7 +25,8 @@ let errors;
 test.beforeEach(async ({ page }) => {
   errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('dialog', (d) => d.accept());
+  // Some browsers/app wrappers block pop-ups, so the app must never rely on them.
+  page.on('dialog', (d) => { errors.push('Unexpected pop-up: ' + d.message()); d.dismiss(); });
 });
 test.afterEach(() => { expect(errors, 'JavaScript errors on the page').toEqual([]); });
 
@@ -182,7 +183,14 @@ test('emoji shop: buy once, never charged twice, rare items stay locked', async 
   await page.goto('/');
   await setProfile(page, { points: 1000 });
   await expect(page.getByRole('button', { name: 'Buy Galaxy for 18000 points' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Buy Galaxy for 18000 points' })).toHaveText('Need 17,000 more');
+
+  // First tap only asks to confirm; nothing is spent yet.
   await press(page.getByRole('button', { name: 'Buy Crown for 1000 points' }));
+  await expect(page.getByRole('button', { name: 'Confirm: buy Crown' })).toHaveText('Tap again to buy');
+  expect(await points(page)).toBe(1000);
+  // Second tap buys it.
+  await press(page.getByRole('button', { name: 'Confirm: buy Crown' }));
   expect(await points(page)).toBe(0);
   await expect(page.locator('#profileAvatar')).toHaveText('👑');
   // The 18,000 rare item must NOT be unlocked by the cheap crown.
@@ -198,6 +206,17 @@ test('emoji shop: buy once, never charged twice, rare items stay locked', async 
   expect(await points(page)).toBe(0);
 });
 
+test('emoji shop: an unconfirmed purchase cancels itself after 5 seconds', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/');
+  await setProfile(page, { points: 500 });
+  await press(page.getByRole('button', { name: 'Buy Cool Face for 100 points' }));
+  await expect(page.getByRole('button', { name: 'Confirm: buy Cool Face' })).toBeVisible();
+  await page.clock.runFor(5_000);
+  await expect(page.getByRole('button', { name: 'Buy Cool Face for 100 points' })).toHaveText('Buy');
+  expect(await points(page)).toBe(500);
+});
+
 test('emoji catalogue: 40+ unique items, rare ones up to 18,000', async ({ page }) => {
   await page.goto('/');
   const catalog = await page.evaluate(() => window.EmiApp.EMOJI_CATALOG);
@@ -205,7 +224,8 @@ test('emoji catalogue: 40+ unique items, rare ones up to 18,000', async ({ page 
   expect(new Set(catalog.map((c) => c.emoji)).size).toBe(catalog.length);
   expect(catalog.some((c) => c.emoji === '😀')).toBe(false);   // default is free, not for sale
   expect(Math.max(...catalog.map((c) => c.price))).toBe(18000);
-  expect(catalog.filter((c) => c.price >= 10000).length).toBeGreaterThanOrEqual(5);
+  expect(catalog.filter((c) => c.price >= 10000).length).toBeGreaterThanOrEqual(20);
+  expect(catalog.map((c) => c.price)).toEqual([...catalog.map((c) => c.price)].sort((a, b) => a - b));
 });
 
 test('questions are always valid in every mode', async ({ page }) => {

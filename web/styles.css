@@ -38,3 +38,4 @@ button:active{transform:scale(.97)}
 .keypad button:disabled{opacity:.5}
 .missed{max-width:600px;margin:10px auto;text-align:center;color:#68758b;line-height:1.7}
 .missed strong{color:var(--ink)}
+.emoji-item button.confirm{background:#ffd65a;color:var(--ink);box-shadow:0 0 0 3px #e8b93c}
