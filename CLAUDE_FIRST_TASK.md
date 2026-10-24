@@ -1,0 +1,7 @@
+Please read `CLAUDE.md`, `PROJECT_SPEC.md`, and `README.md` first. Then inspect the current files without deleting the earlier iOS starter.
+
+The most urgent bug is that on an iPad the user reports that none of the buttons respond when they open the HTML file. Reproduce or diagnose this carefully: inspect JavaScript errors, event listeners, disabled/overlay elements, and mobile Safari behavior. Make the smallest robust fix, then test the game buttons and answer choices in a real browser/automated browser if available. Do not just assume the iPad preview is the cause.
+
+After that, verify all seven games and preserve these requirements: Quick Quiz has exactly 10 questions and a separate 60-second timer per question; +10 points per correct answer only once; default 😀 avatar free; 40+ unlockable emoji choices with expensive rare items; local profile/points/owned emojis saved on that browser; and friends/leaderboard. Friend codes currently carry score snapshots, not live sync. Before implementing a real-time cross-device leaderboard, propose a privacy-conscious backend plan, list required accounts/configuration/costs, and make online sharing explicit because this is a child-friendly product.
+
+Finally, make the web app reliable on iPad Safari and prepare it for website hosting/PWA installation. Do not claim it is deployed or App Store-ready. Explain each change and give simple run/test instructions.

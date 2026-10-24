@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emi’s Learning Platform</title>
+<style>
+:root{--ink:#20304a;--purple:#7357d9;--pink:#ff83b5;--yellow:#ffd65a;--mint:#8de4cb;--blue:#8bd5ff;--paper:#fffdf8}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#f4efff,#eafaff 55%,#fff4e7);font-family:"Trebuchet MS",system-ui,sans-serif;color:var(--ink)}
+header{padding:20px 5vw 12px;display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;font-weight:900;font-size:clamp(1.1rem,3vw,1.65rem)}.logo{width:52px;height:52px;border-radius:17px;background:var(--yellow);display:grid;place-items:center;font-size:30px;box-shadow:0 5px 0 #e8b93c}
+button,select,input{font:inherit}button{border:0;cursor:pointer;font-weight:800;border-radius:14px;padding:12px 17px;transition:transform .12s,filter .12s}button:hover{filter:brightness(1.04);transform:translateY(-2px)}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #20304a;outline-offset:3px}
+.sound-btn{background:#fff;border:2px solid #e3dcf8;color:var(--ink)}main{max-width:1100px;margin:auto;padding:12px 5vw 40px}
+.hero{position:relative;overflow:hidden;background:#fff;border-radius:28px;padding:clamp(24px,5vw,48px);display:grid;grid-template-columns:1.3fr .7fr;align-items:center;gap:20px;box-shadow:0 10px 30px #5545a015}
+.hero h1{font-size:clamp(2.2rem,5.5vw,4.3rem);line-height:1.03;margin:10px 0 14px;letter-spacing:-2px}.hero h1 span{color:var(--purple)}.hero p{font-size:1.08rem;line-height:1.6;max-width:520px}.tag{display:inline-block;background:#f0eaff;color:#5b43ba;border-radius:100px;padding:7px 12px;font-size:.85rem;font-weight:900}
+.hero-art{text-align:center;font-size:clamp(5rem,13vw,9rem);filter:drop-shadow(0 8px 0 #e5dcff);animation:bob 3s ease-in-out infinite}.hero-art small{display:block;font-size:1rem;filter:none;font-weight:900;color:#6b55c8}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}.stat{background:#fff;border-radius:18px;padding:15px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 5px 20px #5545a00b}.stat .emoji{font-size:1.8rem}.stat strong{display:block;font-size:1.3rem}.stat small{color:#68758b}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:30px 0 14px}.section-title h2{font-size:1.65rem;margin:0}.section-title p{margin:4px 0 0;color:#68758b}
+.games{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.game-card{border-radius:22px;padding:22px;background:#fff;box-shadow:0 8px 24px #5545a00d;display:flex;flex-direction:column;align-items:flex-start;min-height:220px}.game-card .big{font-size:3.1rem;margin-bottom:12px}.game-card h3{font-size:1.25rem;margin:0 0 8px}.game-card p{line-height:1.5;color:#657188;margin:0 0 18px;flex:1}.game-card button{color:#fff;background:var(--purple);width:100%}.game-card:nth-child(2) button{background:#ed679e}.game-card:nth-child(3) button{background:#168b76}.game-card:nth-child(4) button{background:#d18a18}.game-card:nth-child(5) button{background:#327bc4}.game-card:nth-child(6) button{background:#d45d79}.game-card:nth-child(7) button{background:#168b76}
+.play-area{display:none;margin-top:24px;background:#fff;border-radius:26px;padding:clamp(20px,4vw,34px);box-shadow:0 10px 30px #5545a015}.play-area.active{display:block}.play-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.play-head h2{margin:0}.close{background:#f1f3f9;color:var(--ink)}.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:20px 0}.controls label{font-weight:800}.controls select{padding:10px 12px;border-radius:12px;border:2px solid #dedcf0;background:#fff;color:var(--ink)}
+.question-box{background:linear-gradient(135deg,#f4efff,#e9faff);border-radius:22px;text-align:center;padding:26px 16px;margin:14px 0}.question-box .question{font-size:clamp(2.2rem,7vw,4rem);font-weight:1000;margin:8px}.question-box .hint{color:#68758b}.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:600px;margin:18px auto}.answer{background:#fff;border:3px solid #e6e1f8;color:var(--ink);font-size:1.5rem;padding:16px}.answer.correct{background:#d8faed;border-color:#45c69c}.answer.wrong{background:#ffe0e8;border-color:#f17c9e}.feedback{min-height:30px;text-align:center;font-size:1.15rem;font-weight:900}.primary{background:var(--purple);color:#fff}.progress-wrap{height:10px;border-radius:10px;background:#eeeaf8;overflow:hidden;margin-top:14px}.progress{height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--purple));transition:width .2s}.footer{text-align:center;padding:30px 12px 10px;color:#738097;font-size:.92rem}.footer strong{color:#5b43ba}.confetti{font-size:2rem;letter-spacing:6px}
+@media(max-width:760px){.hero{grid-template-columns:1fr}.hero-art{font-size:6rem}.games{grid-template-columns:1fr}.game-card{min-height:0}.stats{gap:8px}.stat{padding:12px 9px;gap:6px}.stat .emoji{font-size:1.3rem}.stat small{font-size:.72rem}.stat strong{font-size:1.05rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">🦊</div><span>Emi’s Learning Platform</span></div>
+  <button class="sound-btn" id="soundToggle" aria-pressed="true">🔊 Sound on</button>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <span class="tag">⭐ YEAR 4 MATHS ADVENTURE</span>
+      <h1>Ready to become a <span>Times Tables</span> champion?</h1>
+      <p>Pick a game, sharpen your multiplication skills and collect stars as you go. Learning maths can be an adventure!</p>
+      <button class="primary" onclick="startGame('mix')">🚀 Start playing</button>
+    </div>
+    <div class="hero-art" aria-label="Friendly fox, rainbow and stars">🦊🌈<small>YOU’VE GOT THIS!</small>⭐</div>
+  </section>
+  <section class="stats" aria-label="Your progress">
+    <div class="stat"><span class="emoji">⭐</span><div><strong id="stars">0</strong><small>Stars earned</small></div></div>
+    <div class="stat"><span class="emoji">🎯</span><div><strong id="correctCount">0</strong><small>Correct answers</small></div></div>
+    <div class="stat"><span class="emoji">🔥</span><div><strong id="streak">0</strong><small>Best streak today</small></div></div>
+  </section>
+  <div class="section-title"><div><h2>Choose your challenge</h2><p>Seven fun ways to practise your tables.</p></div></div>
+  <section class="games">
+    <article class="game-card"><div class="big">🎯</div><h3>Quick Quiz</h3><p>Answer multiplication questions and build a brilliant score.</p><button onclick="startGame('mix')">Play Quick Quiz →</button></article>
+    <article class="game-card"><div class="big">🧠</div><h3>Table Trainer</h3><p>Choose a table from 2 to 12 and practise until it sticks.</p><button onclick="startGame('table')">Train a table →</button></article>
+    <article class="game-card"><div class="big">⚡</div><h3>Speed Round</h3><p>How many can you get right in 60 seconds? Give it a go!</p><button onclick="startGame('speed')">Start the timer →</button></article>
+    <article class="game-card"><div class="big">🕵️</div><h3>Missing Number</h3><p>Become a maths detective and find the factor hiding in the equation.</p><button onclick="startGame('missing')">Solve the mystery →</button></article>
+    <article class="game-card"><div class="big">✅</div><h3>True or False?</h3><p>Spot whether each multiplication fact is correct. Trust your maths brain!</p><button onclick="startGame('truefalse')">Test your powers →</button></article>
+    <article class="game-card"><div class="big">➗</div><h3>Division Dash</h3><p>Use your times tables in reverse to solve division questions.</p><button onclick="startGame('division')">Dash into division →</button></article>
+    <article class="game-card"><div class="big">📚</div><h3>Word Problems</h3><p>Use multiplication to solve little real-life maths puzzles.</p><button onclick="startGame('word')">Crack the problem →</button></article>
+  </section>
+  <section class="play-area" id="playArea" aria-live="polite">
+    <div class="play-head"><h2 id="gameTitle">🎯 Quick Quiz</h2><button class="close" onclick="closeGame()">✕ Close</button></div>
+    <div class="controls" id="tableControls" hidden><label for="tableSelect">Practise table:</label><select id="tableSelect" onchange="newQuestion()">
+      <option value="2">2 times table</option><option value="3">3 times table</option><option value="4">4 times table</option><option value="5">5 times table</option><option value="6">6 times table</option><option value="7">7 times table</option><option value="8">8 times table</option><option value="9">9 times table</option><option value="10">10 times table</option><option value="11">11 times table</option><option value="12">12 times table</option>
+    </select></div>
+    <div class="play-head"><span id="roundLabel">Question 1 of 10</span><strong id="timerLabel"></strong></div>
+    <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+    <div class="question-box"><div class="hint">Think carefully… you can do it!</div><div class="question" id="question">4 × 6 = ?</div><div class="hint" id="questionHint">Choose the correct answer below</div></div>
+    <div class="answers" id="answers"></div>
+    <div class="feedback" id="feedback" role="status"></div>
+    <div style="text-align:center;margin-top:12px"><button class="primary" id="nextBtn" onclick="nextQuestion()" hidden>Next question ➜</button><button class="primary" id="restartBtn" onclick="startGame(mode)" hidden>Play again 🔁</button></div>
+  </section>
+  <section style="margin-top:28px;background:#fff;border-radius:22px;padding:22px;display:flex;gap:16px;align-items:center">
+    <div style="font-size:2.8rem">💡</div><div><h3 style="margin:0 0 5px">A little tip</h3><p style="margin:0;color:#657188;line-height:1.5">If you get stuck, try skip-counting. For 4 × 6, count 4, 8, 12, 16, 20, 24. Practise makes progress!</p></div>
+  </section>
+</main>
+<footer class="footer">Made for curious minds 💜<br><strong>Made by Danny Kehoe</strong></footer>
+<script>
+let mode='mix', qNum=0, total=10, score=0, streakNow=0, bestStreak=0, stars=0, correctTotal=0, a=4,b=6, locked=false, soundOn=true, timer=null, seconds=60, speedEnded=false, correctAnswer=24, questionText='4 × 6 = ?', questionHintText='Choose the correct answer below';
+let audioCtx;
+function tone(freq=660,duration=.12,type='sine'){if(!soundOn)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.12,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
+function setSound(){soundOn=!soundOn;const btn=document.getElementById('soundToggle');btn.textContent=soundOn?'🔊 Sound on':'🔇 Sound off';btn.setAttribute('aria-pressed',String(soundOn));if(soundOn)tone(660)}
+document.getElementById('soundToggle').addEventListener('click',setSound);
+function rand(n){return Math.floor(Math.random()*n)+1}
+function startGame(which){if(timer){clearInterval(timer);timer=null}mode=which;qNum=0;score=0;streakNow=0;locked=false;speedEnded=false;seconds=60;total=which==='speed'?Infinity:10;
+document.getElementById('playArea').classList.add('active');document.getElementById('tableControls').hidden=which!=='table';document.getElementById('gameTitle').textContent=({table:'🧠 Table Trainer',speed:'⚡ Speed Round',missing:'🕵️ Missing Number',truefalse:'✅ True or False?',division:'➗ Division Dash',word:'📚 Word Problems'})[which]||'🎯 Quick Quiz';document.getElementById('timerLabel').textContent=which==='speed'?'⏱ 60s':'';document.getElementById('restartBtn').hidden=true;document.getElementById('nextBtn').hidden=true;newQuestion();document.getElementById('playArea').scrollIntoView({behavior:'smooth',block:'start'});
+if(which==='speed'){timer=setInterval(()=>{seconds--;document.getElementById('timerLabel').textContent='⏱ '+seconds+'s';if(seconds<=0){clearInterval(timer);timer=null;endGame()}},1000)}}
+function newQuestion(){if(speedEnded)return;locked=false;document.getElementById('feedback').textContent='';document.getElementById('nextBtn').hidden=true;document.getElementById('restartBtn').hidden=true;
+if(mode==='table'){a=Number(document.getElementById('tableSelect').value);b=rand(12)}else{a=rand(12);b=rand(12)}
+let product=a*b, opts=new Set(), choices=[];correctAnswer=product;questionHintText='Choose the correct answer below';
+if(mode==='missing'){correctAnswer=a;questionText='? × '+b+' = '+product;questionHintText='Which number belongs in the gap?';opts.add(correctAnswer);while(opts.size<4){let n=rand(12);opts.add(n)}choices=[...opts].sort(()=>Math.random()-.5)}
+else if(mode==='division'){correctAnswer=b;questionText=product+' ÷ '+a+' = ?';questionHintText='Division is multiplication in reverse!';opts.add(correctAnswer);while(opts.size<4)opts.add(rand(12));choices=[...opts].sort(()=>Math.random()-.5)}
+else if(mode==='truefalse'){let statementCorrect=Math.random()<.5;let shown=statementCorrect?product:product+(Math.random()<.5?rand(5): -rand(5));if(shown<0)shown=product+rand(5);correctAnswer=statementCorrect?'True':'False';questionText=a+' × '+b+' = '+shown;questionHintText='Is this multiplication fact true or false?';choices=['True','False'].sort(()=>Math.random()-.5)}
+else if(mode==='word'){let things=['stickers','cupcakes','books','shells','football cards','pencils'];let item=things[rand(things.length)-1], groups=rand(9)+1, each=rand(12);a=groups;b=each;correctAnswer=groups*each;questionText='There are '+groups+' '+(groups===1?'box':'boxes')+' with '+each+' '+item+' in each. How many '+item+' altogether?';questionHintText='Multiply the number of groups by the number in each group.';opts.add(correctAnswer);while(opts.size<4){let n=correctAnswer+(rand(15)-7);if(n>=0)opts.add(n)}choices=[...opts].sort(()=>Math.random()-.5)}
+else{questionText=a+' × '+b+' = ?';opts.add(product);while(opts.size<4){let candidate=Math.random()<.6?product+(rand(20)-10):rand(12)*rand(12);if(candidate>=0)opts.add(candidate)}choices=[...opts].sort(()=>Math.random()-.5)}
+document.getElementById('question').textContent=questionText;document.getElementById('questionHint').textContent=questionHintText;document.getElementById('roundLabel').textContent=mode==='speed'?'Correct: '+score:'Question '+(qNum+1)+' of '+total;document.getElementById('progress').style.width=(mode==='speed'?Math.min(100,(score%10)*10):qNum/total*100)+'%';let holder=document.getElementById('answers');holder.innerHTML='';choices.forEach(n=>{let btn=document.createElement('button');btn.className='answer';btn.textContent=n;btn.onclick=()=>checkAnswer(n,btn);holder.appendChild(btn)})}
+function checkAnswer(n,btn){if(locked)return;locked=true;let correct=n===correctAnswer;document.querySelectorAll('.answer').forEach(x=>{x.disabled=true;if(x.textContent===String(correctAnswer))x.classList.add('correct')});if(correct){score++;stars+=1;correctTotal++;streakNow++;bestStreak=Math.max(bestStreak,streakNow);document.getElementById('feedback').textContent=['🌟 Brilliant!','🎉 Fantastic!','🚀 You nailed it!','🦊 Fox-tastic!'][rand(4)-1];tone(880,.15);setTimeout(()=>tone(1100,.12),100)}else{streakNow=0;btn.classList.add('wrong');document.getElementById('feedback').textContent='Nearly! The answer is '+correctAnswer+'. Keep going!';tone(240,.2,'triangle')}
+document.getElementById('stars').textContent=stars;document.getElementById('correctCount').textContent=correctTotal;document.getElementById('streak').textContent=bestStreak;
+if(mode==='speed'){document.getElementById('roundLabel').textContent='Correct: '+score;document.getElementById('progress').style.width=(score%10)*10+'%';document.getElementById('nextBtn').hidden=false;document.getElementById('nextBtn').textContent='Next question ➜'}else if(qNum+1>=total){document.getElementById('nextBtn').hidden=true;document.getElementById('restartBtn').hidden=false;document.getElementById('feedback').textContent+=(correct?' ':' ')+'🏆 Round complete! You got '+score+' out of '+total+' questions!';document.getElementById('progress').style.width='100%';tone(1040,.25)}else{document.getElementById('nextBtn').hidden=false}}
+function nextQuestion(){if(mode==='speed'&&seconds<=0)return;if(mode!=='speed'){qNum++;if(qNum>=total){endGame();return}}newQuestion()}
+function endGame(){speedEnded=true;locked=true;document.getElementById('answers').innerHTML='';document.getElementById('question').textContent='🏆 Amazing effort!';document.getElementById('questionHint').textContent='Every question helps your brain grow.';document.getElementById('questionHint').textContent='Every question helps your brain grow.';document.getElementById('feedback').textContent='You got '+score+' correct. '+(score>=8?'Superstar work!':'Keep practising — you’re getting stronger!');document.getElementById('roundLabel').textContent='Round finished';document.getElementById('nextBtn').hidden=true;document.getElementById('restartBtn').hidden=false;document.getElementById('progress').style.width='100%';tone(900,.2);setTimeout(()=>tone(1200,.25),140)}
+function closeGame(){if(timer){clearInterval(timer);timer=null}document.getElementById('playArea').classList.remove('active')}
+</script>
+</body>
+</html>
