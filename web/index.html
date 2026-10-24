@@ -44,7 +44,7 @@
   <section class="profile-shop" aria-label="Character profile and emoji shop">
     <div class="profile-head">
       <div class="avatar" id="profileAvatar">😀</div>
-      <div class="profile-meta"><h2 id="profileTitle">Your Character</h2><p>Choose a name and collect emojis as you learn.</p></div>
+      <div class="profile-meta"><h2 id="profileTitle">Your Character</h2><div class="rank-badge" id="profileRank"></div><p>Choose a name and collect emojis as you learn.</p></div>
       <div class="profile-points">🪙 <span id="points">0</span> points</div>
     </div>
     <div class="profile-name">
@@ -77,7 +77,7 @@
     <div id="leaderboard" style="margin-top:16px"></div>
   </section>
 
-  <div class="section-title"><div><h2>Choose your challenge</h2><p>Eight fun ways to practise your tables.</p></div></div>
+  <div class="section-title"><div><h2>Choose your challenge</h2><p>Nine fun ways to practise your tables.</p></div></div>
   <section class="games">
     <article class="game-card"><div class="big">🎯</div><h3>Quick Quiz</h3><p>10 questions, with 60 seconds for each one. Build a brilliant score!</p><button type="button" data-game="mix">Play Quick Quiz →</button></article>
     <article class="game-card"><div class="big">🧠</div><h3>Table Trainer</h3><p>Choose a table from 2 to 12 and practise until it sticks.</p><button type="button" data-game="table">Train a table →</button></article>
@@ -87,6 +87,7 @@
     <article class="game-card"><div class="big">➗</div><h3>Division Dash</h3><p>Use your times tables in reverse to solve division questions.</p><button type="button" data-game="division">Dash into division →</button></article>
     <article class="game-card"><div class="big">📚</div><h3>Word Problems</h3><p>Use multiplication to solve little real-life maths puzzles.</p><button type="button" data-game="word">Crack the problem →</button></article>
     <article class="game-card"><div class="big">⏱️</div><h3>Times Tables Check</h3><p>Practise for the real Year 4 check: 25 questions, 6 seconds each. Type your answers!</p><button type="button" data-game="mtc">Take the check →</button></article>
+    <article class="game-card"><div class="big"><img src="ranks/amethyst.svg" alt="" width="52" height="62"></div><h3>Ranked</h3><p>15 questions. The faster you answer, the higher your rank: Bronze, Silver, Gold, Diamond or Amethyst!</p><button type="button" data-game="ranked">Play Ranked →</button></article>
   </section>
 
   <section class="play-area" id="playArea" aria-live="polite">
@@ -111,6 +112,7 @@
       </div>
     </div>
     <div class="feedback" id="feedback" role="status"></div>
+    <div class="rank-result" id="rankResult" hidden></div>
     <div class="missed" id="missed" hidden></div>
     <div style="text-align:center;margin-top:12px">
       <button type="button" class="primary" id="nextBtn" hidden>Next question ➜</button>

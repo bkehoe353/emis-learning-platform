@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" role="img" aria-label="amethyst medal">
+  <defs>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9b0ff"/><stop offset="1" stop-color="#4b1f73"/></linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e7c6ff"/><stop offset="1" stop-color="#8a3fc4"/></linearGradient>
+  </defs>
+  <path d="M28 2 H46 L58 44 H40 Z" fill="#e0569a"/>
+  <path d="M72 2 H54 L42 44 H60 Z" fill="#ff9cc8"/>
+  <circle cx="50" cy="76" r="38" fill="url(#rim)"/>
+  <circle cx="50" cy="76" r="30" fill="url(#face)"/>
+  <circle cx="50" cy="76" r="30" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
+  
+  <polygon points="36,68 43,60 57,60 64,68 50,92" fill="#b064f0" stroke="#4b1f73" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="36,68 43,60 50,68" fill="#f3e2ff"/>
+  <polygon points="50,68 57,60 64,68" fill="#f3e2ff" opacity=".7"/>
+  <polygon points="43,68 57,68 50,92" fill="#f3e2ff" opacity=".45"/>
+  <path d="M36 68 H64 M43 68 L50 92 L57 68" fill="none" stroke="#4b1f73" stroke-width="1.5" opacity=".6"/>
+  <path d="M20 44 Q20 50 26 50 Q20 50 20 56 Q20 50 14 50 Q20 50 20 44Z" fill="#fff"/><path d="M84 91 Q84 96 89 96 Q84 96 84 101 Q84 96 79 96 Q84 96 84 91Z" fill="#fff"/><path d="M82 44 Q82 48 86 48 Q82 48 82 52 Q82 48 78 48 Q82 48 82 44Z" fill="#fff"/>
+</svg>

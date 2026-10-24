@@ -1,8 +1,9 @@
 // Offline support: try the network first (so updates show up straight away),
 // fall back to the saved copy when there is no internet.
-const CACHE = 'emi-v2';
+const CACHE = 'emi-v3';
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'ranks/bronze.svg', 'ranks/silver.svg', 'ranks/gold.svg', 'ranks/diamond.svg', 'ranks/amethyst.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

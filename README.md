@@ -51,12 +51,16 @@ This matters: Safari can delete saved progress for websites that haven't been vi
 
 ## What's saved, and what's shared
 
-- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis and backgrounds, friends list. Nothing is sent to a server.
-- **Friend codes** contain only the nickname, chosen emoji and background, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
+- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis and backgrounds, best rank, tricky facts, friends list. Nothing is sent to a server.
+- **Friend codes** contain only the nickname, chosen emoji and background, best rank, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
 - A live leaderboard would need an online database (such as Supabase or Firebase). That's a later decision, because it would put children's nicknames and scores online.
 
 ## Games
 
-Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · Missing Number · True or False · Division Dash · Word Problems · Times Tables Check (25 questions, 6 s each, typed answers, like the real Year 4 check).
+Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · Missing Number · True or False · Division Dash · Word Problems · Times Tables Check (25 questions, 6 s each, typed answers, like the real Year 4 check) · Ranked.
+
+**Ranked:** 15 typed questions, up to 10 s each. Your rank comes from your average time per question. A wrong answer or a timeout counts as 10 s. Amethyst ≤ 2.5 s · Diamond ≤ 3.5 s · Gold ≤ 5 s · Silver ≤ 7 s · Bronze otherwise. Your profile and friend code show your best rank ever. Medal images are in `web/ranks/` (made by `node tools/make-medals.mjs`).
+
+**Personalised practice:** facts you get wrong (e.g. 7 × 8) are remembered on the device. About 3 in 10 questions in the other games come from these tricky facts, never the same one twice in a row, marked "🎯 Practice time". Each correct answer counts a fact down until it is forgotten. Ranked stays random so it is fair between friends.
 
 Every correct answer earns +10 points, once per question. Points buy emojis and backgrounds in the Shop, which has an Emojis tab and a Backgrounds tab. A star is earned for a great round (8/10, 20/25, or 15 in a Speed Round).

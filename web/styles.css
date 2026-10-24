@@ -47,3 +47,16 @@ button:active{transform:scale(.97)}
 .bg-swatch{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 6px;border-radius:18px;font-size:2rem;border:3px solid #fff;box-shadow:0 0 0 2px #eee3ff}
 .emoji-item.chosen{border-color:#7357d9}
 .leader-row .face{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;flex:none}
+
+/* --- Ranked mode --- */
+.game-card:nth-child(9) button{background:linear-gradient(90deg,#8a3fc4,#e0569a)}
+.medal{display:inline-block;vertical-align:middle;object-fit:contain}
+.rank-badge{display:inline-flex;align-items:center;gap:6px;background:#f6f0ff;border-radius:100px;padding:3px 12px 3px 6px;font-weight:900;font-size:.9rem;color:#5b43ba;margin:2px 0 6px;min-height:34px}
+.rank-result{text-align:center;margin:10px auto;max-width:600px}
+.rank-result h3{font-size:1.8rem;margin:6px 0}
+.rank-result p{margin:0 0 12px;font-weight:800;color:#5b43ba}
+.rank-ladder{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.rank-step{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;border-radius:14px;border:2px solid transparent;opacity:.55}
+.rank-step.current{opacity:1;border-color:#7357d9;background:#f6f0ff}
+.rank-step small{font-weight:800;color:#68758b}
+.leader-rank{display:flex;align-items:center;gap:4px;font-size:.85rem;font-weight:800;color:#5b43ba}

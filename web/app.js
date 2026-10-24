@@ -7,6 +7,11 @@ const PROFILE_KEY = 'emisLearningProfile';
 const FRIENDS_KEY = 'emisLearningFriends';
 const POINTS_PER_CORRECT = 10;
 
+// Personalised practice (see "Personalised practice" below).
+const TRICKY_CHANCE = 0.3;
+const TRICKY_MAX = 6;
+const PERSONALISED_MODES = new Set(['mix', 'table', 'speed', 'missing', 'truefalse', 'division', 'mtc']);   // not Ranked: keep it fair
+
 const GAMES = {
   mix:       { title: '🎯 Quick Quiz',          total: 10, perQuestion: 60, starAt: 8 },
   table:     { title: '🧠 Table Trainer',       total: 10, starAt: 8 },
@@ -16,6 +21,7 @@ const GAMES = {
   division:  { title: '➗ Division Dash',        total: 10, starAt: 8 },
   word:      { title: '📚 Word Problems',        total: 10, starAt: 8 },
   mtc:       { title: '⏱️ Times Tables Check',   total: 25, perQuestion: 6, typed: true, starAt: 20 },
+  ranked:    { title: '🏅 Ranked',               total: 15, perQuestion: 10, typed: true, ranked: true, starAt: 13 },
 };
 
 // Every emoji must appear only once (ownership is stored by emoji).
@@ -52,6 +58,28 @@ const EMOJI_CATALOG = [
   { emoji: '🧜', name: 'Mermaid', price: 17800 },
 ].sort((a, b) => a.price - b.price);   // shop shows cheapest first
 const DEFAULT_EMOJI = '😀';
+
+// Ranked mode: rank comes from the average seconds per question.
+// Wrong answers and timeouts count as the full 10 seconds. Worst first.
+const RANKS = [
+  { id: 'bronze',   name: 'Bronze',   maxAvg: Infinity },
+  { id: 'silver',   name: 'Silver',   maxAvg: 7 },
+  { id: 'gold',     name: 'Gold',     maxAvg: 5 },
+  { id: 'diamond',  name: 'Diamond',  maxAvg: 3.5 },
+  { id: 'amethyst', name: 'Amethyst', maxAvg: 2.5 },
+];
+const RANKS_BY_ID = Object.fromEntries(RANKS.map((r, i) => [r.id, { ...r, level: i }]));
+const rankForAverage = (avg) => [...RANKS].reverse().find((r) => avg <= r.maxAvg).id;
+const medalSrc = (id) => `ranks/${id}.svg`;
+
+function medalImg(id, size) {
+  const img = document.createElement('img');
+  img.src = medalSrc(id);
+  img.alt = RANKS_BY_ID[id].name + ' rank';
+  img.width = size; img.height = Math.round(size * 1.2);
+  img.className = 'medal';
+  return img;
+}
 
 // Backgrounds shown behind the character emoji. Saved by id.
 const STARS = 'radial-gradient(#fff 1px,transparent 1.6px) 0 0/14px 14px,radial-gradient(#fff9 1px,transparent 1.6px) 7px 7px/14px 14px';
@@ -127,6 +155,10 @@ function loadProfile() {
     stars: num(saved.stars),
     correctTotal: num(saved.correctTotal),
     bestStreak: num(saved.bestStreak),
+    trickyFacts: Object.fromEntries(Object.entries(saved.trickyFacts && typeof saved.trickyFacts === 'object' ? saved.trickyFacts : {})
+      .filter(([k, v]) => /^\d{1,2}x\d{1,2}$/.test(k) && Number(v) > 0).map(([k, v]) => [k, Math.min(TRICKY_MAX, Math.floor(Number(v)))])),
+    bestRank: RANKS_BY_ID[saved.bestRank] ? saved.bestRank : null,       // null = not ranked yet
+    bestRankAvg: Number.isFinite(saved.bestRankAvg) ? saved.bestRankAvg : null,
   };
   return profile;
 }
@@ -222,6 +254,15 @@ function renderProfile() {
   $('profileAvatar').textContent = profile.selectedEmoji;
   $('profileAvatar').style.background = backgroundCss(profile.selectedBackground);
   $('profileTitle').textContent = profile.name || 'Your Character';
+  const badge = $('profileRank');
+  badge.textContent = '';
+  if (profile.bestRank) {
+    const label = document.createElement('span');
+    label.textContent = RANKS_BY_ID[profile.bestRank].name;
+    badge.append(medalImg(profile.bestRank, 30), label);
+  } else {
+    badge.textContent = 'Unranked — play Ranked!';
+  }
   renderShop('emoji', $('shopGrid'));
   renderShop('bg', $('bgGrid'));
 }
@@ -331,7 +372,7 @@ function fromBase64(code) {
 function makeFriendCode() {
   return toBase64(JSON.stringify({
     v: 2, id: profile.playerId, name: profile.name || 'Maths Champion',
-    emoji: profile.selectedEmoji || DEFAULT_EMOJI, bg: profile.selectedBackground, points: profile.points,
+    emoji: profile.selectedEmoji || DEFAULT_EMOJI, bg: profile.selectedBackground, rank: profile.bestRank, points: profile.points,
   }));
 }
 
@@ -346,7 +387,8 @@ function decodeFriendCode(code) {
       : 'v1-' + name.toLowerCase() + '-' + emoji;
     if (!id) return null;
     const bg = BACKGROUNDS_BY_ID[data.bg] ? data.bg : DEFAULT_BACKGROUND;   // only known backgrounds
-    return { id, name, emoji, bg, points: Math.min(10_000_000, Math.max(0, Math.floor(Number(data.points)))), updated: new Date().toISOString() };
+    const rank = RANKS_BY_ID[data.rank] ? data.rank : null;                  // only known ranks
+    return { id, name, emoji, bg, rank, points: Math.min(10_000_000, Math.max(0, Math.floor(Number(data.points)))), updated: new Date().toISOString() };
   } catch {
     return null;
   }
@@ -396,7 +438,7 @@ function removeFriend(id) {
 function renderLeaderboard() {
   const box = $('leaderboard');
   const everyone = [
-    { id: 'you', name: profile.name || 'You', emoji: profile.selectedEmoji, bg: profile.selectedBackground, points: profile.points, isYou: true },
+    { id: 'you', name: profile.name || 'You', emoji: profile.selectedEmoji, bg: profile.selectedBackground, rank: profile.bestRank, points: profile.points, isYou: true },
     ...friends,
   ].sort((a, b) => b.points - a.points);
   box.textContent = '';
@@ -416,7 +458,14 @@ function renderLeaderboard() {
     const name = document.createElement('strong'); name.textContent = person.name + (person.isYou ? ' (You)' : '');
     const note = document.createElement('small');
     note.textContent = person.isYou ? 'Your current score' : 'Score from their code on ' + new Date(person.updated).toLocaleDateString();
-    details.append(name, note);
+    const rankLine = document.createElement('span');
+    rankLine.className = 'leader-rank';
+    if (person.rank && RANKS_BY_ID[person.rank]) {
+      rankLine.append(medalImg(person.rank, 20), RANKS_BY_ID[person.rank].name + ' rank');
+    } else {
+      rankLine.textContent = 'Unranked';
+    }
+    details.append(name, rankLine, note);
     const score = document.createElement('span'); score.className = 'score'; score.textContent = person.points.toLocaleString() + ' pts';
     row.append(rank, face, details, score);
     if (!person.isYou) {
@@ -432,13 +481,13 @@ function renderLeaderboard() {
 /* ---------- Questions ---------- */
 
 // Builds one question for a game mode. Pure: no page changes.
-function makeQuestion(mode, table = 2) {
-  if (mode === 'mtc') {
-    const a = randBetween(2, 12), b = randBetween(2, 12);
-    return { text: `${a} × ${b} = ?`, hint: 'Type your answer, then press Enter', answer: a * b, fact: `${a} × ${b} = ${a * b}` };
+// `factors` (optional) picks the multiplication fact to ask, e.g. [7, 8].
+function makeQuestion(mode, table = 2, factors = null) {
+  if (mode === 'mtc' || mode === 'ranked') {
+    const [a, b] = factors || [randBetween(2, 12), randBetween(2, 12)];
+    return { text: `${a} × ${b} = ?`, hint: 'Type your answer, then press Enter', answer: a * b, fact: `${a} × ${b} = ${a * b}`, factors: [a, b] };
   }
-  let a = mode === 'table' ? Number(table) : rand(12);
-  let b = rand(12);
+  const [a, b] = factors || [mode === 'table' ? Number(table) : rand(12), rand(12)];
   const product = a * b;
   const fourChoices = (answer, makeWrong) => {
     const opts = new Set([answer]);
@@ -448,16 +497,16 @@ function makeQuestion(mode, table = 2) {
   };
 
   if (mode === 'missing') {
-    return { text: `? × ${b} = ${product}`, hint: 'Which number belongs in the gap?', answer: a, choices: fourChoices(a, () => rand(12)) };
+    return { text: `? × ${b} = ${product}`, hint: 'Which number belongs in the gap?', answer: a, choices: fourChoices(a, () => rand(12)), factors: [a, b] };
   }
   if (mode === 'division') {
-    return { text: `${product} ÷ ${a} = ?`, hint: 'Division is multiplication in reverse!', answer: b, choices: fourChoices(b, () => rand(12)) };
+    return { text: `${product} ÷ ${a} = ?`, hint: 'Division is multiplication in reverse!', answer: b, choices: fourChoices(b, () => rand(12)), factors: [a, b] };
   }
   if (mode === 'truefalse') {
     const isTrue = Math.random() < 0.5;
     let shown = isTrue ? product : product + (Math.random() < 0.5 ? rand(5) : -rand(5));
     if (shown < 0) shown = product + rand(5);
-    return { text: `${a} × ${b} = ${shown}`, hint: 'Is this multiplication fact true or false?', answer: isTrue ? 'True' : 'False', choices: ['True', 'False'] };
+    return { text: `${a} × ${b} = ${shown}`, hint: 'Is this multiplication fact true or false?', answer: isTrue ? 'True' : 'False', choices: ['True', 'False'], factors: [a, b] };
   }
   if (mode === 'word') {
     const things = ['stickers', 'cupcakes', 'books', 'shells', 'football cards', 'pencils'];
@@ -473,12 +522,44 @@ function makeQuestion(mode, table = 2) {
   return {
     text: `${a} × ${b} = ?`, hint: 'Choose the correct answer below', answer: product,
     choices: fourChoices(product, () => (Math.random() < 0.6 ? product + rand(20) - 10 : rand(12) * rand(12))),
+    factors: [a, b],
   };
+}
+
+/* ---------- Personalised practice ---------- */
+// Each fact the player gets wrong gets a "tricky" score (7 × 8 and 8 × 7 count as one).
+// Wrong or too slow: +2 (max 6). Right: -1. At 0 it is forgotten.
+// About 3 in 10 questions are picked from tricky facts, never the same one twice in a row.
+const factKey = (a, b) => Math.min(a, b) + 'x' + Math.max(a, b);
+
+function recordFact(factors, correct) {
+  if (!factors) return;
+  const key = factKey(...factors);
+  const next = (profile.trickyFacts[key] || 0) + (correct ? -1 : 2);
+  if (next <= 0) delete profile.trickyFacts[key];
+  else profile.trickyFacts[key] = Math.min(TRICKY_MAX, next);
+}
+
+// Returns [a, b] for a tricky fact, or null to ask a normal random question.
+function pickTrickyFactors(mode, table, lastKey, random = Math.random) {
+  if (!PERSONALISED_MODES.has(mode) || random() >= TRICKY_CHANCE) return null;
+  let options = Object.entries(profile.trickyFacts)
+    .map(([key, weight]) => ({ key, weight, nums: key.split('x').map(Number) }))
+    .filter((f) => f.key !== lastKey);
+  if (mode === 'table') options = options.filter((f) => f.nums.includes(Number(table)));
+  if (mode === 'mtc') options = options.filter((f) => f.nums.every((n) => n >= 2));   // the check uses 2-12
+  if (!options.length) return null;
+  let roll = random() * options.reduce((sum, f) => sum + f.weight, 0);     // trickier facts come up more
+  const pick = options.find((f) => (roll -= f.weight) < 0) || options[options.length - 1];
+  let [a, b] = pick.nums;
+  if (mode === 'table') { b = a === Number(table) ? b : a; a = Number(table); }
+  else if (random() < 0.5) [a, b] = [b, a];
+  return [a, b];
 }
 
 /* ---------- Game flow ---------- */
 
-const game = { mode: 'mix', config: GAMES.mix, qNum: 0, score: 0, streak: 0, locked: true, ended: true, seconds: 0, question: null, typed: '', missed: [] };
+const game = { mode: 'mix', config: GAMES.mix, qNum: 0, score: 0, streak: 0, locked: true, ended: true, seconds: 0, question: null, typed: '', missed: [], times: [], questionStart: 0 };
 const timers = { round: null, question: null, advance: null };
 
 function clearTimers() {
@@ -489,7 +570,8 @@ function clearTimers() {
 function startGame(mode) {
   if (!GAMES[mode]) mode = 'mix';
   clearTimers();
-  Object.assign(game, { mode, config: GAMES[mode], qNum: 0, score: 0, streak: 0, locked: false, ended: false, typed: '', missed: [] });
+  Object.assign(game, { mode, config: GAMES[mode], qNum: 0, score: 0, streak: 0, locked: false, ended: false, typed: '', missed: [], times: [] });
+  $('rankResult').hidden = true;
   $('playArea').classList.add('active');
   $('tableControls').hidden = mode !== 'table';
   $('gameTitle').textContent = game.config.title;
@@ -516,13 +598,16 @@ function newQuestion() {
   clearInterval(timers.question); timers.question = null;
   game.locked = false;
   game.typed = '';
-  game.question = makeQuestion(game.mode, $('tableSelect').value);
+  const lastKey = game.question && game.question.factors ? factKey(...game.question.factors) : null;
+  const tricky = pickTrickyFactors(game.mode, $('tableSelect').value, lastKey);
+  game.question = makeQuestion(game.mode, $('tableSelect').value, tricky);
+  game.question.tricky = !!tricky;
   const q = game.question;
 
   $('feedback').textContent = '';
   $('nextBtn').hidden = true;
   $('question').textContent = q.text;
-  $('questionHint').textContent = q.hint;
+  $('questionHint').textContent = (q.tricky ? '🎯 Practice time — this one was tricky before! ' : '') + q.hint;
   $('roundLabel').textContent = game.mode === 'speed' ? 'Correct: ' + game.score : `Question ${game.qNum + 1} of ${game.config.total}`;
   $('progress').style.width = (game.mode === 'speed' ? (game.score % 10) * 10 : (game.qNum / game.config.total) * 100) + '%';
 
@@ -547,6 +632,7 @@ function newQuestion() {
   }
 
   if (game.config.perQuestion) startQuestionTimer(game.config.perQuestion);
+  game.questionStart = Date.now();
 }
 
 function startQuestionTimer(seconds) {
@@ -574,7 +660,10 @@ function questionTimedOut() {
   if (game.locked) return;
   lockAnswers();
   game.streak = 0;
-  if (game.mode === 'mtc') { game.missed.push(game.question.fact); $('typedAnswer').classList.add('wrong'); }
+  recordFact(game.question.factors, false);
+  saveProfile();
+  if (game.config.typed) { game.missed.push(game.question.fact); $('typedAnswer').classList.add('wrong'); }
+  if (game.config.ranked) game.times.push(game.config.perQuestion);
   $('feedback').textContent = `⏰ Time’s up! The answer was ${game.question.answer}.`;
   tone(240, 0.2, 'triangle');
   afterAnswer();
@@ -584,6 +673,12 @@ function submitAnswer(value, btn) {
   if (game.locked || game.ended) return;
   lockAnswers();
   const correct = String(value) === String(game.question.answer);
+  if (game.config.ranked) {
+    const seconds = Math.min(game.config.perQuestion, (Date.now() - game.questionStart) / 1000);
+    game.times.push(correct ? seconds : game.config.perQuestion);   // wrong answers count as the full time
+  }
+  recordFact(game.question.factors, correct);
+  if (!correct) saveProfile();   // a correct answer saves below
   if (correct) {
     game.score++;
     game.streak++;
@@ -596,7 +691,7 @@ function submitAnswer(value, btn) {
   } else {
     game.streak = 0;
     if (btn) btn.classList.add('wrong');
-    if (game.mode === 'mtc') game.missed.push(game.question.fact);
+    if (game.config.typed) game.missed.push(game.question.fact);
     $('feedback').textContent = `Nearly! The answer is ${game.question.answer}. Keep going!`;
     tone(240, 0.2, 'triangle');
   }
@@ -612,7 +707,8 @@ function afterAnswer() {
     $('progress').style.width = (game.score % 10) * 10 + '%';
     timers.advance = setTimeout(nextQuestion, 700);
   } else if (game.config.typed) {
-    timers.advance = setTimeout(nextQuestion, 1500);
+    // Ranked moves on quickly; the clock for the next question starts when it appears.
+    timers.advance = setTimeout(nextQuestion, game.config.ranked ? 900 : 1500);
   } else if (isLastQuestion()) {
     finishRound();
   } else {
@@ -648,7 +744,8 @@ function finishRound() {
   const summary = `🏆 Round complete! You got ${game.score} out of ${total}.` + (star ? ' ⭐ You earned a star!' : '');
   if (game.config.typed) {
     setKeypadEnabled(false);
-    $('question').textContent = '🏆 Check complete!';
+    $('question').textContent = game.config.ranked ? '🏆 Ranked round complete!' : '🏆 Check complete!';
+    if (game.config.ranked) showRankResult();
     $('questionHint').textContent = 'Every question helps your brain grow.';
     $('typedArea').hidden = true;
     $('feedback').textContent = summary;
@@ -663,6 +760,43 @@ function finishRound() {
   }
   tone(1040, 0.25);
   $('restartBtn').focus({ preventScroll: true });
+}
+
+function showRankResult() {
+  const avg = game.times.reduce((a, b) => a + b, 0) / game.times.length;
+  const rankId = rankForAverage(avg);
+  const rank = RANKS_BY_ID[rankId];
+  const isNewBest = !profile.bestRank || rank.level > RANKS_BY_ID[profile.bestRank].level
+    || (rankId === profile.bestRank && avg < (profile.bestRankAvg ?? Infinity));
+  if (isNewBest) {
+    profile.bestRank = rankId;
+    profile.bestRankAvg = Math.round(avg * 10) / 10;
+    saveProfile();
+  }
+
+  const box = $('rankResult');
+  box.textContent = '';
+  box.hidden = false;
+  box.append(medalImg(rankId, 110));
+  const title = document.createElement('h3');
+  title.textContent = `${rank.name} rank!`;
+  const detail = document.createElement('p');
+  detail.textContent = `Average time: ${avg.toFixed(1)} seconds per question.` + (isNewBest ? ' 🎉 New best!' : ` Your best is still ${RANKS_BY_ID[profile.bestRank].name}.`);
+  box.append(title, detail);
+
+  // The ladder shows every rank and the time needed for it.
+  const ladder = document.createElement('div');
+  ladder.className = 'rank-ladder';
+  RANKS.forEach((r, i) => {
+    const step = document.createElement('div');
+    step.className = 'rank-step' + (r.id === rankId ? ' current' : '');
+    const label = document.createElement('small');
+    label.textContent = r.name + (i === 0 ? '' : ` · ${r.maxAvg}s`);
+    step.append(medalImg(r.id, 40), label);
+    ladder.appendChild(step);
+  });
+  box.appendChild(ladder);
+  if (rank.level === RANKS.length - 1) tone(1320, 0.3);
 }
 
 function endSpeedRound() {
@@ -745,6 +879,6 @@ function init() {
 }
 
 // Exposed for automated tests.
-window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES };
+window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile };
 
 init();

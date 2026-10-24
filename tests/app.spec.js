@@ -33,8 +33,8 @@ test.afterEach(() => { expect(errors, 'JavaScript errors on the page').toEqual([
 test('every game button opens its game', async ({ page }) => {
   await page.goto('/');
   const buttons = page.locator('.games [data-game]');
-  await expect(buttons).toHaveCount(8);
-  for (let i = 0; i < 8; i++) {
+  await expect(buttons).toHaveCount(9);
+  for (let i = 0; i < 9; i++) {
     await press(buttons.nth(i));
     await expect(page.locator('#playArea')).toHaveClass(/active/);
     await expect(page.locator('#question')).not.toHaveText('');
@@ -354,4 +354,121 @@ test('friend codes carry the background; unknown backgrounds fall back to Sunny'
     };
   });
   expect(result).toEqual({ good: 'lava', bad: 'sunny', none: 'sunny' });
+});
+
+/* ---------- Ranked mode ---------- */
+
+async function typeAnswer(page) {
+  for (const digit of await productAnswer(page)) await press(page.locator(`#keypad [data-key="${digit}"]`));
+  await press(page.locator('#keypad [data-key="enter"]'));
+}
+
+test('Ranked: fast answers earn Amethyst, shown on profile and leaderboard', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-01-01T09:00:00') });
+  await page.goto('/');
+  // Freeze time so slow test taps don't count; only runFor() moves the clock.
+  await page.clock.pauseAt(new Date('2026-01-01T09:05:00'));
+  await expect(page.locator('#profileRank')).toContainText('Unranked');
+  await press(page.getByRole('button', { name: 'Play Ranked →' }));
+  await expect(page.locator('#roundLabel')).toHaveText('Question 1 of 15');
+  await expect(page.locator('#timerLabel')).toHaveText('⏱ 10s');
+  for (let q = 1; q <= 15; q++) {
+    await page.clock.runFor(1_000);          // answer after about 1 second
+    await typeAnswer(page);
+    await page.clock.runFor(900);            // short pause before the next question
+  }
+  await expect(page.locator('#rankResult')).toBeVisible();
+  await expect(page.locator('#rankResult h3')).toHaveText('Amethyst rank!');
+  await expect(page.locator('#rankResult')).toContainText('New best!');
+  await expect(page.locator('#rankResult img[alt="Amethyst rank"]').first()).toBeVisible();
+  await expect(page.locator('#rankResult .rank-step')).toHaveCount(5);
+  await expect(page.locator('#profileRank')).toContainText('Amethyst');
+  expect(await points(page)).toBe(150);
+
+  await page.reload();
+  await expect(page.locator('#profileRank')).toContainText('Amethyst');
+  await expect(page.locator('.leader-row', { hasText: '(You)' })).toContainText('Amethyst rank');
+});
+
+test('Ranked: slow round gives Bronze but never lowers your best rank', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/');
+  await setProfile(page, { bestRank: 'gold', bestRankAvg: 4.5 });
+  await press(page.getByRole('button', { name: 'Play Ranked →' }));
+  for (let q = 1; q <= 15; q++) await page.clock.runFor(10_900);   // every question times out
+  await expect(page.locator('#rankResult h3')).toHaveText('Bronze rank!');
+  await expect(page.locator('#rankResult')).toContainText('Your best is still Gold');
+  await expect(page.locator('#profileRank')).toContainText('Gold');
+  await expect(page.locator('#missed')).toContainText('Facts to practise');
+});
+
+test('Ranked: rank thresholds by average seconds', async ({ page }) => {
+  await page.goto('/');
+  const ranks = await page.evaluate(() => [1, 2.5, 2.6, 3.5, 3.6, 5, 5.1, 7, 7.1, 10].map(window.EmiApp.rankForAverage));
+  expect(ranks).toEqual(['amethyst', 'amethyst', 'diamond', 'diamond', 'gold', 'gold', 'silver', 'silver', 'bronze', 'bronze']);
+});
+
+test('Ranked: medal images load', async ({ request }) => {
+  for (const id of ['bronze', 'silver', 'gold', 'diamond', 'amethyst']) {
+    const res = await request.get(`/ranks/${id}.svg`);
+    expect(res.ok()).toBe(true);
+    expect(await res.text()).toContain('<svg');
+  }
+});
+
+test('Ranked: friend codes carry rank; unknown ranks are ignored', async ({ page }) => {
+  await page.goto('/');
+  const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64');
+  await page.locator('#friendCodeInput').fill(enc({ v: 2, id: 'f-1', name: 'Zoe', emoji: '🦄', rank: 'diamond', points: 900 }));
+  await press(page.locator('#addFriendBtn'));
+  await page.locator('#friendCodeInput').fill(enc({ v: 2, id: 'f-2', name: 'Sam', emoji: '🐶', rank: 'platinum', points: 50 }));
+  await press(page.locator('#addFriendBtn'));
+  await expect(page.locator('.leader-row', { hasText: 'Zoe' })).toContainText('Diamond rank');
+  await expect(page.locator('.leader-row', { hasText: 'Zoe' }).locator('img[alt="Diamond rank"]')).toBeVisible();
+  await expect(page.locator('.leader-row', { hasText: 'Sam' })).toContainText('Unranked');
+  const mine = await page.evaluate(() => JSON.parse(atob(window.EmiApp.makeFriendCode())));
+  expect(mine.rank).toBeNull();
+});
+
+/* ---------- Personalised practice ---------- */
+
+test('tricky facts: wrong answers are remembered, right answers count down', async ({ page }) => {
+  await page.goto('/');
+  await press(page.getByRole('button', { name: 'Play Quick Quiz →' }));
+  const [a, b] = (await page.locator('#question').textContent()).match(/\d+/g).map(Number);
+  const key = Math.min(a, b) + 'x' + Math.max(a, b);
+  await press(page.locator(`#answers .answer:not([data-value="${a * b}"])`).first());
+  await page.reload();
+  expect(await page.evaluate(() => window.EmiApp.getProfile().trickyFacts)).toEqual({ [key]: 2 });
+});
+
+test('tricky facts: asked about 3 in 10 times, never twice in a row, not in Ranked', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { trickyFacts: { '7x8': 6, '3x4': 2 } });
+  const r = await page.evaluate(() => {
+    const { pickTrickyFactors } = window.EmiApp;
+    let picked = 0, repeats = 0, last = null;
+    const counts = {};
+    for (let i = 0; i < 4000; i++) {
+      const f = pickTrickyFactors('mix', 2, last);
+      const key = f ? Math.min(...f) + 'x' + Math.max(...f) : null;
+      if (key) { picked++; counts[key] = (counts[key] || 0) + 1; if (key === last) repeats++; }
+      last = key;
+    }
+    return {
+      share: picked / 4000, repeats, counts,
+      ranked: pickTrickyFactors('ranked', 2, null, () => 0),
+      tableMatch: pickTrickyFactors('table', 7, null, () => 0),
+      tableNoMatch: pickTrickyFactors('table', 9, null, () => 0),
+      lastWasOnly: pickTrickyFactors('table', 7, '7x8', () => 0),
+    };
+  });
+  expect(r.share).toBeGreaterThan(0.24);
+  expect(r.share).toBeLessThan(0.36);
+  expect(r.repeats).toBe(0);
+  expect(r.counts['7x8']).toBeGreaterThan(r.counts['3x4']);   // trickier facts come up more
+  expect(r.ranked).toBeNull();
+  expect(r.tableMatch).toEqual([7, 8]);
+  expect(r.tableNoMatch).toBeNull();
+  expect(r.lastWasOnly).toBeNull();
 });
