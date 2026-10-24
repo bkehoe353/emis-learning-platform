@@ -267,10 +267,26 @@ function renderProfile() {
   renderShop('bg', $('bgGrid'));
 }
 
+// Each shop shows its first SHOP_PREVIEW items until "See more" is tapped.
+const SHOP_PREVIEW = 12;
+const shopExpanded = { emoji: false, bg: false };
+
+function toggleShopMore(kind) {
+  shopExpanded[kind] = !shopExpanded[kind];
+  clearPendingBuy();
+  renderProfile();
+}
+
 function renderShop(kind, grid) {
   const shop = SHOPS[kind];
+  const all = shop.items();
+  const visible = shopExpanded[kind] ? all : all.slice(0, SHOP_PREVIEW);
+  const more = $(kind === 'emoji' ? 'emojiMore' : 'bgMore');
+  more.hidden = all.length <= SHOP_PREVIEW;
+  more.textContent = shopExpanded[kind] ? 'Show less ▲' : `See more (${all.length - SHOP_PREVIEW} more) ▼`;
+  more.setAttribute('aria-expanded', String(shopExpanded[kind]));
   grid.textContent = '';
-  for (const item of shop.items()) {
+  for (const item of visible) {
     const key = shop.key(item);
     const label = shop.label(item);
     const owned = shop.owned().includes(key);
@@ -846,6 +862,8 @@ function pressKey(key) {
 function init() {
   document.querySelectorAll('[data-game]').forEach((btn) => btn.addEventListener('click', () => startGame(btn.dataset.game)));
   $('soundToggle').addEventListener('click', toggleSound);
+  $('emojiMore').addEventListener('click', () => toggleShopMore('emoji'));
+  $('bgMore').addEventListener('click', () => toggleShopMore('bg'));
   document.querySelectorAll('.shop-tab').forEach((tab) => tab.addEventListener('click', () => showShopTab(tab.dataset.shop)));
   $('saveNameBtn').addEventListener('click', saveName);
   $('profileName').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });

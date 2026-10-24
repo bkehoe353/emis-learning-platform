@@ -182,6 +182,8 @@ test('progress is saved and restored after reload', async ({ page }) => {
 test('emoji shop: buy once, never charged twice, rare items stay locked', async ({ page }) => {
   await page.goto('/');
   await setProfile(page, { points: 1000 });
+  await expect(page.locator("#shopGrid .emoji-item")).toHaveCount(12);
+  await press(page.locator("#emojiMore"));
   await expect(page.getByRole('button', { name: 'Buy Galaxy for 18000 points' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Buy Galaxy for 18000 points' })).toHaveText('Need 17,000 more');
 
@@ -201,6 +203,7 @@ test('emoji shop: buy once, never charged twice, rare items stay locked', async 
   // Switching between owned emojis is free.
   await press(page.getByRole('button', { name: 'Use Happy Face' }));
   await expect(page.locator('#profileAvatar')).toHaveText('😀');
+  await press(page.locator("#emojiMore"));
   await press(page.getByRole('button', { name: 'Use Crown' }));
   await expect(page.locator('#profileAvatar')).toHaveText('👑');
   expect(await points(page)).toBe(0);
@@ -314,6 +317,7 @@ test('background shop: buy, save, switch back, never charged twice', async ({ pa
   await setProfile(page, { points: 2000 });
   await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
   await expect(page.getByRole('button', { name: 'Using Sunny background' })).toBeVisible();
+  await press(page.locator("#bgMore"));
   await expect(page.getByRole('button', { name: 'Buy Deep Space background for 18000 points' })).toHaveText('Need 16,000 more');
 
   await press(page.getByRole('button', { name: 'Buy Ocean background for 800 points' }));
@@ -471,4 +475,22 @@ test('tricky facts: asked about 3 in 10 times, never twice in a row, not in Rank
   expect(r.tableMatch).toEqual([7, 8]);
   expect(r.tableNoMatch).toBeNull();
   expect(r.lastWasOnly).toBeNull();
+});
+
+test('shops show 12 items until See more is tapped', async ({ page }) => {
+  await page.goto('/');
+  const emojiCount = await page.evaluate(() => window.EmiApp.EMOJI_CATALOG.length + 1);   // + free Happy Face
+  await expect(page.locator('#shopGrid .emoji-item')).toHaveCount(12);
+  await expect(page.locator('#emojiMore')).toHaveText(`See more (${emojiCount - 12} more) ▼`);
+  await press(page.locator('#emojiMore'));
+  await expect(page.locator('#shopGrid .emoji-item')).toHaveCount(emojiCount);
+  await expect(page.locator('#emojiMore')).toHaveText('Show less ▲');
+  await expect(page.locator('#emojiMore')).toHaveAttribute('aria-expanded', 'true');
+  await press(page.locator('#emojiMore'));
+  await expect(page.locator('#shopGrid .emoji-item')).toHaveCount(12);
+
+  await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
+  await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(12);
+  await press(page.locator('#bgMore'));
+  await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(22);
 });

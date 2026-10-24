@@ -60,3 +60,4 @@ button:active{transform:scale(.97)}
 .rank-step.current{opacity:1;border-color:#7357d9;background:#f6f0ff}
 .rank-step small{font-weight:800;color:#68758b}
 .leader-rank{display:flex;align-items:center;gap:4px;font-size:.85rem;font-weight:800;color:#5b43ba}
+.see-more{display:block;margin:14px auto 0;background:#f1edff;color:#5b43ba;border:2px solid #e3dcf8;min-height:48px;padding:12px 22px}
