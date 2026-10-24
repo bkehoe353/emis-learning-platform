@@ -3,7 +3,7 @@
 Read `PROJECT_SPEC.md` and `README.md` before making changes.
 
 ## Working rules
-- Treat `web/index.html` as the canonical current web prototype.
+- The website is `web/` (`index.html`, `app.js`, `styles.css`, `sw.js`, `manifest.webmanifest`). Run `npm test` (Playwright: iPad WebKit + Chrome) after changes.
 - Inspect the current code first. The user reported that none of the buttons respond on iPad; reproduce/test before making assumptions.
 - Preserve all requested features and the credit “Made by Danny Kehoe”.
 - Make small, testable changes. After each significant change, run available tests and check the browser console for JavaScript errors.

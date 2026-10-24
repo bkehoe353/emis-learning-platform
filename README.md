@@ -1,33 +1,62 @@
-# Emi's Learning Platform — Claude Code project bundle
+# Emi's Learning Platform
 
-This folder gathers the project files and the requirements discussed so far. The current browser game is in `web/index.html` and is the canonical starting point. The `ios-starter/` folder contains an earlier SwiftUI/WKWebView Xcode starter; it is not yet updated to match every feature in the latest website.
+A Year 4 times-tables practice website with eight games, points, an emoji shop and a friends leaderboard. Made by Danny Kehoe.
 
-## First: open this folder in Claude Code
+The website lives in `web/`. The older iOS app starter in `ios-starter/` is out of date and not updated yet.
 
-1. Transfer this ZIP to your laptop and extract it.
-2. Install Claude Code using Anthropic's official guide: https://docs.anthropic.com/en/docs/claude-code/getting-started
-3. Open Terminal (Mac/Linux) or PowerShell/terminal on Windows and change directory into the extracted `EmisLearningPlatform-ClaudeCode` folder.
-4. Run `claude` and sign in when prompted.
-5. Copy the task in `CLAUDE_FIRST_TASK.md` into Claude Code.
+## Why buttons didn't work on the iPad
 
-Claude Code should inspect the files and test the project before changing anything. Do not assume the current HTML is bug-free: the reported issue is that buttons do not respond when opened in the iPad preview.
+The game code was fine. Opening an `.html` file from the Files app, an email or a OneDrive preview shows the page **without running its code**, so nothing responds. The site needs to be opened from a web address (GitHub Pages below, or `localhost` when testing). A preview now shows a message explaining this.
 
-## Run the current website locally
+## Run it on this computer
 
-The current version is a self-contained HTML file. For reliable testing, serve the `web` folder over localhost rather than opening it inside a file preview. If Python is installed, from the project root run:
+Needs [Node.js](https://nodejs.org) (already installed here).
 
 ```bash
-python -m http.server 8000 --directory web
+npm start
 ```
 
-Then open `http://localhost:8000` in your browser.
+Then open http://localhost:8000.
 
-## Current state — important notes
+## Run the automated tests
 
-- `web/index.html` is the latest website file available in this project bundle.
-- It includes seven maths games, a profile, points, a large emoji shop, and friend-code leaderboard UI.
-- Quick Quiz is designed for 10 questions, with 60 seconds per question.
-- The profile and owned emojis are stored locally in that browser using localStorage.
-- Friends currently use shareable code snapshots; scores do **not** automatically sync between devices. A genuinely live friends leaderboard needs a hosted backend/database and a clear privacy choice.
-- The iOS starter is an earlier wrapper and may not contain all latest website features. It requires Xcode on a Mac to build/sign a native iOS app. Do not claim the app is App Store-ready until it has been updated, tested, signed, and reviewed.
-- No public website has been deployed from this bundle.
+The tests play the games in WebKit, Safari's engine, set up as an iPad with touch, and in Chrome.
+
+```bash
+npm install
+npx playwright install webkit chromium
+npm test
+```
+
+## Publish on GitHub Pages (free)
+
+1. On github.com, create a new **empty** repository (for example `emis-learning-platform`). Public is required for free GitHub Pages.
+2. In the repository, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. From this folder, connect and push:
+   ```bash
+   git remote add origin https://github.com/YOUR-USERNAME/emis-learning-platform.git
+   git push -u origin main
+   ```
+4. Open the **Actions** tab. The workflow runs the tests and, if they pass, publishes the site. The address will be `https://YOUR-USERNAME.github.io/emis-learning-platform/`.
+
+Every later `git push` republishes automatically.
+
+## Put it on an iPad's Home Screen
+
+1. Open the website address in **Safari**.
+2. Tap the **Share** button, then **Add to Home Screen**.
+3. Open the game from the new fox icon.
+
+This matters: Safari can delete saved progress for websites that haven't been visited for about 7 days. Saved data for Home Screen apps isn't cleared that way. After the first visit the games also work offline.
+
+## What's saved, and what's shared
+
+- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis, friends list. Nothing is sent to a server.
+- **Friend codes** contain only the nickname, chosen emoji, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
+- A live leaderboard would need an online database (such as Supabase or Firebase). That's a later decision, because it would put children's nicknames and scores online.
+
+## Games
+
+Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · Missing Number · True or False · Division Dash · Word Problems · Times Tables Check (25 questions, 6 s each, typed answers, like the real Year 4 check).
+
+Every correct answer earns +10 points, once per question. A star is earned for a great round (8/10, 20/25, or 15 in a Speed Round).

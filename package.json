@@ -1,0 +1,12 @@
+{
+  "name": "emis-learning-platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.mjs 8000",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}
