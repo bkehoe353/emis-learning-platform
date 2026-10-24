@@ -51,8 +51,8 @@ This matters: Safari can delete saved progress for websites that haven't been vi
 
 ## What's saved, and what's shared
 
-- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis, friends list. Nothing is sent to a server.
-- **Friend codes** contain only the nickname, chosen emoji, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
+- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis and backgrounds, friends list. Nothing is sent to a server.
+- **Friend codes** contain only the nickname, chosen emoji and background, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
 - A live leaderboard would need an online database (such as Supabase or Firebase). That's a later decision, because it would put children's nicknames and scores online.
 
 ## Games
