@@ -53,6 +53,35 @@ const EMOJI_CATALOG = [
 ].sort((a, b) => a.price - b.price);   // shop shows cheapest first
 const DEFAULT_EMOJI = '😀';
 
+// Backgrounds shown behind the character emoji. Saved by id.
+const STARS = 'radial-gradient(#fff 1px,transparent 1.6px) 0 0/14px 14px,radial-gradient(#fff9 1px,transparent 1.6px) 7px 7px/14px 14px';
+const BACKGROUND_CATALOG = [
+  { id: 'sunny', name: 'Sunny', price: 0, css: 'linear-gradient(135deg,#fff0a8,#ffd3e5)' },
+  { id: 'mint', name: 'Mint Breeze', price: 200, css: 'linear-gradient(135deg,#d4fbe9,#9fe3ff)' },
+  { id: 'bubblegum', name: 'Bubblegum', price: 300, css: 'linear-gradient(135deg,#ffe0f1,#ff9fcf)' },
+  { id: 'lavender', name: 'Lavender', price: 400, css: 'linear-gradient(135deg,#efe6ff,#bca5ff)' },
+  { id: 'lemonade', name: 'Lemonade', price: 600, css: 'linear-gradient(135deg,#fffbd0,#ffe14d)' },
+  { id: 'ocean', name: 'Ocean', price: 800, css: 'linear-gradient(180deg,#a8e4ff,#3d8bfd)' },
+  { id: 'forest', name: 'Forest', price: 1000, css: 'linear-gradient(180deg,#d6f7c4,#3fa66a)' },
+  { id: 'peach', name: 'Peachy', price: 1300, css: 'linear-gradient(135deg,#ffe5cc,#ff9f7a)' },
+  { id: 'sunset', name: 'Sunset', price: 1700, css: 'linear-gradient(180deg,#ffd36b,#ff7a7a 55%,#b15cff)' },
+  { id: 'clouds', name: 'Cloudy Sky', price: 2200, css: 'radial-gradient(circle at 25% 35%,#fff 0 14%,transparent 15%),radial-gradient(circle at 38% 32%,#fff 0 17%,transparent 18%),radial-gradient(circle at 72% 70%,#fff 0 13%,transparent 14%),linear-gradient(180deg,#7cc8ff,#cdeeff)' },
+  { id: 'candy', name: 'Candy Stripes', price: 3000, css: 'repeating-linear-gradient(45deg,#ffd3e5 0 10px,#fff 10px 20px)' },
+  { id: 'polka', name: 'Polka Dots', price: 4000, css: 'radial-gradient(#ff83b5 22%,transparent 24%) 0 0/18px 18px,#fff4fa' },
+  { id: 'rainbow', name: 'Rainbow', price: 5000, css: 'linear-gradient(135deg,#ff9a9a,#ffd17a,#fff59a,#a8f0a0,#8bd5ff,#c7a8ff)' },
+  { id: 'checkers', name: 'Checkers', price: 6000, css: 'repeating-conic-gradient(#8de4cb 0 25%,#fff 0 50%) 0 0/20px 20px' },
+  { id: 'lava', name: 'Lava', price: 7500, css: 'radial-gradient(circle at 30% 70%,#ffe08a,#ff6a3d 45%,#8a1c1c)' },
+  { id: 'underwater', name: 'Under the Sea', price: 9000, css: 'radial-gradient(circle at 20% 80%,#ffffff88 0 5%,transparent 6%),radial-gradient(circle at 75% 30%,#ffffff88 0 4%,transparent 5%),radial-gradient(circle at 60% 85%,#ffffff66 0 3%,transparent 4%),linear-gradient(180deg,#2fb8d9,#0b4f8a)' },
+  { id: 'gold', name: 'Pure Gold', price: 11000, css: 'linear-gradient(135deg,#fff3b0,#ffcf3f 40%,#c98a00 60%,#ffe680)' },
+  { id: 'aurora', name: 'Northern Lights', price: 13000, css: 'linear-gradient(160deg,#0b1d3a,#1f6f78 45%,#7cf5c4 70%,#b48cff)' },
+  { id: 'diamond', name: 'Diamond', price: 14500, css: 'conic-gradient(from 45deg,#e0fbff,#b8e8ff,#ffffff,#d8c8ff,#e0fbff,#b8f5ff,#ffffff,#e0fbff)' },
+  { id: 'nebula', name: 'Nebula', price: 16000, css: 'radial-gradient(circle at 30% 30%,#ff83b5aa,transparent 45%),radial-gradient(circle at 70% 70%,#8bd5ffaa,transparent 45%),linear-gradient(135deg,#1a0b3d,#4a1c71)' },
+  { id: 'starry', name: 'Starry Night', price: 17000, css: STARS + ',linear-gradient(180deg,#0b1033,#2a1a5e)' },
+  { id: 'deepspace', name: 'Deep Space', price: 18000, css: STARS + ',radial-gradient(circle at 30% 30%,#ff83b5cc,transparent 40%),radial-gradient(circle at 75% 65%,#8bd5ffcc,transparent 40%),linear-gradient(135deg,#05051f,#3a1c71)' },
+];
+const DEFAULT_BACKGROUND = 'sunny';
+const BACKGROUNDS_BY_ID = Object.fromEntries(BACKGROUND_CATALOG.map((b) => [b.id, b]));
+
 /* ---------- Helpers ---------- */
 
 const $ = (id) => document.getElementById(id);
@@ -84,6 +113,8 @@ function loadProfile() {
   const saved = storage.read(PROFILE_KEY, {}) || {};
   const owned = Array.isArray(saved.ownedEmojis) ? saved.ownedEmojis.filter((e) => typeof e === 'string') : [];
   if (!owned.includes(DEFAULT_EMOJI)) owned.unshift(DEFAULT_EMOJI);
+  const ownedBgs = Array.isArray(saved.ownedBackgrounds) ? saved.ownedBackgrounds.filter((id) => BACKGROUNDS_BY_ID[id]) : [];
+  if (!ownedBgs.includes(DEFAULT_BACKGROUND)) ownedBgs.unshift(DEFAULT_BACKGROUND);
   const num = (v) => Math.max(0, Math.floor(Number(v)) || 0);
   const profile = {
     playerId: typeof saved.playerId === 'string' && saved.playerId ? saved.playerId : newPlayerId(),
@@ -91,6 +122,8 @@ function loadProfile() {
     points: num(saved.points),
     selectedEmoji: owned.includes(saved.selectedEmoji) ? saved.selectedEmoji : DEFAULT_EMOJI,
     ownedEmojis: [...new Set(owned)],
+    selectedBackground: ownedBgs.includes(saved.selectedBackground) ? saved.selectedBackground : DEFAULT_BACKGROUND,
+    ownedBackgrounds: [...new Set(ownedBgs)],
     stars: num(saved.stars),
     correctTotal: num(saved.correctTotal),
     bestStreak: num(saved.bestStreak),
@@ -150,45 +183,86 @@ function renderStats() {
   $('streak').textContent = profile.bestStreak.toLocaleString();
 }
 
+// The two shops share one set of rules. Each item has a key (what we save),
+// a name, a price, and a way to draw its preview.
+const SHOPS = {
+  emoji: {
+    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG],
+    key: (item) => item.emoji,
+    label: (item) => item.name,
+    owned: () => profile.ownedEmojis,
+    selected: () => profile.selectedEmoji,
+    select: (key) => { profile.selectedEmoji = key; },
+    preview(item) {
+      const em = document.createElement('span'); em.className = 'shop-emoji'; em.textContent = item.emoji;
+      return em;
+    },
+  },
+  bg: {
+    items: () => BACKGROUND_CATALOG,
+    key: (item) => item.id,
+    label: (item) => item.name + ' background',
+    owned: () => profile.ownedBackgrounds,
+    selected: () => profile.selectedBackground,
+    select: (key) => { profile.selectedBackground = key; },
+    preview(item) {
+      const swatch = document.createElement('span');
+      swatch.className = 'bg-swatch';
+      swatch.style.background = item.css;
+      swatch.textContent = profile.selectedEmoji;   // shows how it will look
+      return swatch;
+    },
+  },
+};
+
+const backgroundCss = (id) => (BACKGROUNDS_BY_ID[id] || BACKGROUNDS_BY_ID[DEFAULT_BACKGROUND]).css;
+
 function renderProfile() {
   $('points').textContent = profile.points.toLocaleString();
   $('profileAvatar').textContent = profile.selectedEmoji;
+  $('profileAvatar').style.background = backgroundCss(profile.selectedBackground);
   $('profileTitle').textContent = profile.name || 'Your Character';
-  const grid = $('shopGrid');
+  renderShop('emoji', $('shopGrid'));
+  renderShop('bg', $('bgGrid'));
+}
+
+function renderShop(kind, grid) {
+  const shop = SHOPS[kind];
   grid.textContent = '';
-  for (const item of [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG]) {
-    const owned = profile.ownedEmojis.includes(item.emoji);
-    const chosen = profile.selectedEmoji === item.emoji;
+  for (const item of shop.items()) {
+    const key = shop.key(item);
+    const label = shop.label(item);
+    const owned = shop.owned().includes(key);
+    const chosen = shop.selected() === key;
     const card = document.createElement('div');
-    card.className = 'emoji-item';
-    const em = document.createElement('span'); em.className = 'shop-emoji'; em.textContent = item.emoji;
+    card.className = 'emoji-item' + (chosen ? ' chosen' : '');
     const name = document.createElement('strong'); name.textContent = item.name;
     const price = document.createElement('small'); price.textContent = item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.dataset.emoji = item.emoji;
     if (owned) {
       btn.className = 'owned';
-      btn.textContent = chosen ? 'Using ✓' : 'Use emoji';
-      btn.setAttribute('aria-label', (chosen ? 'Using ' : 'Use ') + item.name);
-      btn.addEventListener('click', () => useEmoji(item.emoji));
+      btn.textContent = chosen ? 'Using ✓' : 'Use';
+      btn.setAttribute('aria-label', (chosen ? 'Using ' : 'Use ') + label);
+      btn.addEventListener('click', () => useItem(kind, key));
     } else {
       const short = item.price - profile.points;
-      const confirming = pendingBuy === item.emoji;
+      const confirming = pendingBuy === kind + ':' + key;
       btn.textContent = short > 0 ? `Need ${short.toLocaleString()} more` : confirming ? 'Tap again to buy' : 'Buy';
       if (confirming) btn.className = 'confirm';
-      btn.setAttribute('aria-label', confirming ? `Confirm: buy ${item.name}` : `Buy ${item.name} for ${item.price} points`);
+      btn.setAttribute('aria-label', confirming ? `Confirm: buy ${label}` : `Buy ${label} for ${item.price} points`);
       btn.disabled = short > 0;
-      btn.addEventListener('click', () => buyEmoji(item));
+      btn.addEventListener('click', () => buyItem(kind, item));
     }
-    card.append(em, name, price, btn);
+    card.append(shop.preview(item), name, price, btn);
     grid.appendChild(card);
   }
 }
 
-function useEmoji(emoji) {
-  if (!profile.ownedEmojis.includes(emoji)) return;
-  profile.selectedEmoji = emoji;
+function useItem(kind, key) {
+  const shop = SHOPS[kind];
+  if (!shop.owned().includes(key)) return;
+  shop.select(key);
   saveProfile();
 }
 
@@ -204,12 +278,15 @@ function clearPendingBuy() {
   pendingBuyTimer = null;
 }
 
-function buyEmoji(item) {
-  if (profile.ownedEmojis.includes(item.emoji)) return;        // never charge twice
+function buyItem(kind, item) {
+  const shop = SHOPS[kind];
+  const key = shop.key(item);
+  if (shop.owned().includes(key)) return;                     // never charge twice
   if (profile.points < item.price) return;
-  if (pendingBuy !== item.emoji) {
+  const pendingKey = kind + ':' + key;
+  if (pendingBuy !== pendingKey) {
     clearPendingBuy();
-    pendingBuy = item.emoji;
+    pendingBuy = pendingKey;
     pendingBuyTimer = setTimeout(() => { clearPendingBuy(); renderProfile(); }, 5000);
     renderProfile();
     tone(600, 0.08);
@@ -217,10 +294,20 @@ function buyEmoji(item) {
   }
   clearPendingBuy();
   profile.points -= item.price;
-  profile.ownedEmojis.push(item.emoji);
-  profile.selectedEmoji = item.emoji;
+  shop.owned().push(key);
+  shop.select(key);
   saveProfile();
   tone(900, 0.16);
+}
+
+function showShopTab(kind) {
+  for (const tab of document.querySelectorAll('.shop-tab')) {
+    const on = tab.dataset.shop === kind;
+    tab.setAttribute('aria-selected', String(on));
+    tab.tabIndex = on ? 0 : -1;
+  }
+  $('emojiPanel').hidden = kind !== 'emoji';
+  $('bgPanel').hidden = kind !== 'bg';
 }
 
 function saveName() {
@@ -244,7 +331,7 @@ function fromBase64(code) {
 function makeFriendCode() {
   return toBase64(JSON.stringify({
     v: 2, id: profile.playerId, name: profile.name || 'Maths Champion',
-    emoji: profile.selectedEmoji || DEFAULT_EMOJI, points: profile.points,
+    emoji: profile.selectedEmoji || DEFAULT_EMOJI, bg: profile.selectedBackground, points: profile.points,
   }));
 }
 
@@ -258,7 +345,8 @@ function decodeFriendCode(code) {
       ? data.id.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 64)
       : 'v1-' + name.toLowerCase() + '-' + emoji;
     if (!id) return null;
-    return { id, name, emoji, points: Math.min(10_000_000, Math.max(0, Math.floor(Number(data.points)))), updated: new Date().toISOString() };
+    const bg = BACKGROUNDS_BY_ID[data.bg] ? data.bg : DEFAULT_BACKGROUND;   // only known backgrounds
+    return { id, name, emoji, bg, points: Math.min(10_000_000, Math.max(0, Math.floor(Number(data.points)))), updated: new Date().toISOString() };
   } catch {
     return null;
   }
@@ -308,7 +396,7 @@ function removeFriend(id) {
 function renderLeaderboard() {
   const box = $('leaderboard');
   const everyone = [
-    { id: 'you', name: profile.name || 'You', emoji: profile.selectedEmoji, points: profile.points, isYou: true },
+    { id: 'you', name: profile.name || 'You', emoji: profile.selectedEmoji, bg: profile.selectedBackground, points: profile.points, isYou: true },
     ...friends,
   ].sort((a, b) => b.points - a.points);
   box.textContent = '';
@@ -323,6 +411,7 @@ function renderLeaderboard() {
     const row = document.createElement('div'); row.className = 'leader-row';
     const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = ['🥇', '🥈', '🥉'][index] || '#' + (index + 1);
     const face = document.createElement('span'); face.className = 'face'; face.textContent = person.emoji;
+    face.style.background = backgroundCss(person.bg);
     const details = document.createElement('div'); details.className = 'person';
     const name = document.createElement('strong'); name.textContent = person.name + (person.isYou ? ' (You)' : '');
     const note = document.createElement('small');
@@ -623,6 +712,7 @@ function pressKey(key) {
 function init() {
   document.querySelectorAll('[data-game]').forEach((btn) => btn.addEventListener('click', () => startGame(btn.dataset.game)));
   $('soundToggle').addEventListener('click', toggleSound);
+  document.querySelectorAll('.shop-tab').forEach((tab) => tab.addEventListener('click', () => showShopTab(tab.dataset.shop)));
   $('saveNameBtn').addEventListener('click', saveName);
   $('profileName').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveName(); });
   $('makeFriendCode').addEventListener('click', showMyCode);
@@ -655,6 +745,6 @@ function init() {
 }
 
 // Exposed for automated tests.
-window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, GAMES };
+window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES };
 
 init();

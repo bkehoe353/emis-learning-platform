@@ -59,4 +59,4 @@ This matters: Safari can delete saved progress for websites that haven't been vi
 
 Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · Missing Number · True or False · Division Dash · Word Problems · Times Tables Check (25 questions, 6 s each, typed answers, like the real Year 4 check).
 
-Every correct answer earns +10 points, once per question. A star is earned for a great round (8/10, 20/25, or 15 in a Speed Round).
+Every correct answer earns +10 points, once per question. Points buy emojis and backgrounds in the Shop, which has an Emojis tab and a Backgrounds tab. A star is earned for a great round (8/10, 20/25, or 15 in a Speed Round).

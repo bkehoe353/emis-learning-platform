@@ -296,3 +296,62 @@ test('still works when browser storage is blocked', async ({ page }) => {
   await press(page.locator(`#answers .answer[data-value="${await productAnswer(page)}"]`));
   expect(await points(page)).toBe(10);
 });
+
+test('shop tabs switch between emojis and backgrounds', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#emojiPanel')).toBeVisible();
+  await expect(page.locator('#bgPanel')).toBeHidden();
+  await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
+  await expect(page.locator('#bgPanel')).toBeVisible();
+  await expect(page.locator('#emojiPanel')).toBeHidden();
+  await expect(page.getByRole('tab', { name: '🎨 Backgrounds' })).toHaveAttribute('aria-selected', 'true');
+  await press(page.getByRole('tab', { name: '🛍️ Emojis' }));
+  await expect(page.locator('#emojiPanel')).toBeVisible();
+});
+
+test('background shop: buy, save, switch back, never charged twice', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { points: 2000 });
+  await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
+  await expect(page.getByRole('button', { name: 'Using Sunny background' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Buy Deep Space background for 18000 points' })).toHaveText('Need 16,000 more');
+
+  await press(page.getByRole('button', { name: 'Buy Ocean background for 800 points' }));
+  expect(await points(page)).toBe(2000);
+  await press(page.getByRole('button', { name: 'Confirm: buy Ocean background' }));
+  expect(await points(page)).toBe(1200);
+  const avatarBg = () => page.locator('#profileAvatar').evaluate((el) => getComputedStyle(el).backgroundImage);
+  expect(await avatarBg()).toContain('rgb(61, 139, 253)');   // ocean blue
+
+  await page.reload();
+  expect(await avatarBg()).toContain('rgb(61, 139, 253)');
+  await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
+  await press(page.getByRole('button', { name: 'Use Sunny background' }));
+  expect(await avatarBg()).not.toContain('rgb(61, 139, 253)');
+  await press(page.getByRole('button', { name: 'Use Ocean background' }));
+  expect(await points(page)).toBe(1200);
+});
+
+test('background catalogue: unique, sorted, rare ones up to 18,000', async ({ page }) => {
+  await page.goto('/');
+  const bgs = await page.evaluate(() => window.EmiApp.BACKGROUND_CATALOG);
+  expect(bgs.length).toBeGreaterThanOrEqual(20);
+  expect(new Set(bgs.map((b) => b.id)).size).toBe(bgs.length);
+  expect(bgs[0]).toMatchObject({ id: 'sunny', price: 0 });
+  expect(Math.max(...bgs.map((b) => b.price))).toBe(18000);
+  expect(bgs.map((b) => b.price)).toEqual([...bgs.map((b) => b.price)].sort((a, b) => a - b));
+});
+
+test('friend codes carry the background; unknown backgrounds fall back to Sunny', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(() => {
+    const enc = (o) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o))));
+    const { decodeFriendCode } = window.EmiApp;
+    return {
+      good: decodeFriendCode(enc({ v: 2, id: 'f1', name: 'Zoe', emoji: '🦄', bg: 'lava', points: 1 })).bg,
+      bad: decodeFriendCode(enc({ v: 2, id: 'f2', name: 'Sam', emoji: '🐶', bg: 'url(evil)', points: 1 })).bg,
+      none: decodeFriendCode(enc({ v: 1, name: 'Old', emoji: '🐶', points: 1 })).bg,
+    };
+  });
+  expect(result).toEqual({ good: 'lava', bad: 'sunny', none: 'sunny' });
+});

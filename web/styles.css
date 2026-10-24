@@ -39,3 +39,11 @@ button:active{transform:scale(.97)}
 .missed{max-width:600px;margin:10px auto;text-align:center;color:#68758b;line-height:1.7}
 .missed strong{color:var(--ink)}
 .emoji-item button.confirm{background:#ffd65a;color:var(--ink);box-shadow:0 0 0 3px #e8b93c}
+
+/* --- Shop tabs and backgrounds --- */
+.shop-tabs{display:flex;gap:8px;background:#f1edff;padding:6px;border-radius:18px;margin-top:4px;max-width:420px}
+.shop-tab{flex:1;background:transparent;color:#5b43ba;padding:12px 10px;border-radius:14px;min-height:48px}
+.shop-tab[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 3px 10px #5545a022}
+.bg-swatch{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 6px;border-radius:18px;font-size:2rem;border:3px solid #fff;box-shadow:0 0 0 2px #eee3ff}
+.emoji-item.chosen{border-color:#7357d9}
+.leader-row .face{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;flex:none}

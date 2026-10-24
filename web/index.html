@@ -53,9 +53,14 @@
       <button type="button" class="primary" id="saveNameBtn">Save name</button>
     </div>
     <p class="shop-note">Use a nickname, not your full real name.</p>
-    <div class="section-title" style="margin-top:24px"><div><h2>🛍️ Emoji Shop</h2><p>Earn 10 points for every correct answer in any game, then save up for rare profile emojis!</p></div></div>
-    <div class="shop-grid" id="shopGrid"></div>
-    <p class="shop-note">Your happy face 😀 is free and is your default profile emoji. Some rare emojis cost up to 18,000 points! Your points, name and unlocked emojis are saved on this device, in this browser. <strong>Tip:</strong> add this site to your Home Screen so your progress stays safe.</p>
+    <div class="section-title" style="margin-top:24px"><div><h2>🛍️ Shop</h2><p>Earn 10 points for every correct answer in any game, then save up for rare emojis and backgrounds!</p></div></div>
+    <div class="shop-tabs" role="tablist" aria-label="Shops">
+      <button type="button" class="shop-tab" role="tab" id="emojiTab" data-shop="emoji" aria-controls="emojiPanel" aria-selected="true">🛍️ Emojis</button>
+      <button type="button" class="shop-tab" role="tab" id="bgTab" data-shop="bg" aria-controls="bgPanel" aria-selected="false" tabindex="-1">🎨 Backgrounds</button>
+    </div>
+    <div id="emojiPanel" role="tabpanel" aria-labelledby="emojiTab"><div class="shop-grid" id="shopGrid"></div></div>
+    <div id="bgPanel" role="tabpanel" aria-labelledby="bgTab" hidden><div class="shop-grid" id="bgGrid"></div></div>
+    <p class="shop-note">Your happy face 😀 and the Sunny background are free. Rare items cost up to 18,000 points! Your points, name and unlocked emojis are saved on this device, in this browser. <strong>Tip:</strong> add this site to your Home Screen so your progress stays safe.</p>
     <p class="shop-note" id="storageWarning" hidden>⚠️ This browser isn’t letting the game save. Your points will reset when you close the page.</p>
   </section>
 
