@@ -255,3 +255,11 @@ test('leaderboard: a friend in a time zone ahead still shows a current streak', 
   await expect(row).not.toContainText('ask for a new code');
   await expect(page.locator('.leader-row .rank').first()).toHaveText('1st');
 });
+
+test('Start playing scrolls to the challenges instead of starting a game', async ({ page }) => {
+  await page.goto('/');
+  await press(page.getByRole('button', { name: '🚀 Start playing' }));
+  await expect(page.locator('#playArea')).not.toHaveClass(/active/);
+  await expect(page.getByRole('heading', { name: 'Choose your challenge' })).toBeInViewport();
+  await expect(page.locator('#challenges')).toBeFocused();
+});

@@ -113,3 +113,5 @@ button:active{transform:scale(.97)}
 .leader-row .rank.place-1{background:#7357d9;color:#fff}
 .leader-row .rank.place-2{background:#b9a3ff;color:#fff}
 .leader-row .rank.place-3{background:#e3dcf8;color:#5b43ba}
+#challenges{scroll-margin-top:16px}
+#challenges:focus{outline:none}

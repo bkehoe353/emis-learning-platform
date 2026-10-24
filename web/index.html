@@ -30,7 +30,7 @@
       <span class="tag">⭐ YEAR 4 MATHS ADVENTURE</span>
       <h1>Ready to become a <span>Times Tables</span> champion?</h1>
       <p>Pick a game, sharpen your multiplication skills and collect stars as you go. Learning maths can be an adventure!</p>
-      <button type="button" class="primary" data-game="mix">🚀 Start playing</button>
+      <button type="button" class="primary" id="startPlayingBtn" aria-controls="challenges">🚀 Start playing</button>
     </div>
     <div class="hero-art" aria-label="Friendly fox, rainbow and stars">🦊🌈<small>YOU’VE GOT THIS!</small>⭐</div>
   </section>
@@ -93,7 +93,7 @@
     <div id="backupMessage" role="status" style="margin-top:10px;font-weight:800"></div>
   </section>
 
-  <div class="section-title"><div><h2>Choose your challenge</h2><p>Nine fun ways to practise your tables.</p></div></div>
+  <div class="section-title" id="challenges" tabindex="-1"><div><h2>Choose your challenge</h2><p>Nine fun ways to practise your tables.</p></div></div>
   <section class="games">
     <article class="game-card"><div class="big">🎯</div><h3>Quick Quiz</h3><p>10 questions, with 60 seconds for each one. Build a brilliant score!</p><button type="button" data-game="mix">Play Quick Quiz →</button></article>
     <article class="game-card"><div class="big">🧠</div><h3>Table Trainer</h3><p>Choose a table from 2 to 12 and practise until it sticks.</p><button type="button" data-game="table">Train a table →</button></article>

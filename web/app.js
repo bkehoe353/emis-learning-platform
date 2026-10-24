@@ -1205,6 +1205,11 @@ function pressKey(key) {
 function init() {
   document.querySelectorAll('[data-game]').forEach((btn) => btn.addEventListener('click', () => startGame(btn.dataset.game)));
   $('soundToggle').addEventListener('click', toggleSound);
+  $('startPlayingBtn').addEventListener('click', () => {
+    const target = $('challenges');
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.focus({ preventScroll: true });   // keyboard and screen-reader users land there too
+  });
   $('makeBackupBtn').addEventListener('click', () => createBackup(false));
   $('shareBackupBtn').addEventListener('click', () => createBackup(true));
   $('restoreBtn').addEventListener('click', restoreBackup);
