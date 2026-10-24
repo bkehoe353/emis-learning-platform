@@ -16,10 +16,20 @@ async function productAnswer(page) {
 
 const points = async (page) => Number((await page.locator('#points').textContent()).replace(/,/g, ''));
 
-async function setProfile(page, data) {
-  await page.evaluate((d) => localStorage.setItem('emisLearningProfile', JSON.stringify(d)), data);
+// Saves a profile and reloads. By default the player has already had today's
+// daily bonus and owns every badge, so point totals only count answers and buying.
+async function setProfile(page, data, { settled = true } = {}) {
+  await page.evaluate(({ d, settled }) => {
+    if (settled) {
+      const now = new Date(Date.now());
+      const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      d = { lastPlayDay: day, dailyStreak: 1, badges: Object.fromEntries(window.EmiApp.BADGES.map((b) => [b.id, day])), ...d };
+    }
+    localStorage.setItem('emisLearningProfile', JSON.stringify(d));
+  }, { d: data, settled });
   await page.reload();
 }
+const settle = (page) => setProfile(page, {});
 
 let errors;
 test.beforeEach(async ({ page }) => {
@@ -49,6 +59,7 @@ test('every game button opens its game', async ({ page }) => {
 
 test('Quick Quiz: 10 questions, +10 once per correct answer, final score out of 10', async ({ page }) => {
   await page.goto('/');
+  await settle(page);
   await press(page.getByRole('button', { name: 'Play Quick Quiz →' }));
   for (let q = 1; q <= 10; q++) {
     await expect(page.locator('#roundLabel')).toHaveText(`Question ${q} of 10`);
@@ -117,6 +128,7 @@ test('closing a game stops its timer', async ({ page }) => {
 test('Speed Round ends after 60 seconds', async ({ page }) => {
   await page.clock.install();
   await page.goto('/');
+  await settle(page);
   await press(page.getByRole('button', { name: 'Start the timer →' }));
   await press(page.locator(`#answers .answer[data-value="${await productAnswer(page)}"]`));
   await page.clock.runFor(1_000);
@@ -128,8 +140,10 @@ test('Speed Round ends after 60 seconds', async ({ page }) => {
 });
 
 test('Times Tables Check: typed answers, 25 questions, 6 seconds each', async ({ page }) => {
-  await page.clock.install();
+  await page.clock.install({ time: new Date('2026-01-01T09:00:00') });
   await page.goto('/');
+  await settle(page);
+  await page.clock.pauseAt(new Date('2026-01-01T09:05:00'));   // only runFor() moves time
   await press(page.getByRole('button', { name: 'Take the check →' }));
   await expect(page.locator('#roundLabel')).toHaveText('Question 1 of 25');
   await expect(page.locator('#timerLabel')).toHaveText('⏱ 6s');
@@ -148,6 +162,7 @@ test('Times Tables Check: typed answers, 25 questions, 6 seconds each', async ({
 
   // Let the rest time out (6s each + 1.5s pause).
   for (let q = 2; q <= 25; q++) await page.clock.runFor(7_500);
+  await page.clock.runFor(5_000);   // a little spare time
   await expect(page.locator('#feedback')).toContainText('You got 1 out of 25');
   await expect(page.locator('#missed')).toBeVisible();
   await expect(page.locator('#missed')).toContainText('Facts to practise');
@@ -167,6 +182,7 @@ test('Table Trainer uses the chosen table and changing it restarts the round', a
 
 test('progress is saved and restored after reload', async ({ page }) => {
   await page.goto('/');
+  await settle(page);
   await page.locator('#profileName').fill('Emi');
   await press(page.locator('#saveNameBtn'));
   await press(page.getByRole('button', { name: 'Play Quick Quiz →' }));
@@ -297,7 +313,7 @@ test('still works when browser storage is blocked', async ({ page }) => {
   await expect(page.locator('#storageWarning')).toBeVisible();
   await press(page.getByRole('button', { name: 'Play Quick Quiz →' }));
   await press(page.locator(`#answers .answer[data-value="${await productAnswer(page)}"]`));
-  expect(await points(page)).toBe(10);
+  expect(await points(page)).toBe(80);   // 10 + daily bonus 20 + First Answer badge 50
 });
 
 test('shop tabs switch between emojis and backgrounds', async ({ page }) => {
@@ -372,6 +388,7 @@ test('Ranked: fast answers earn Amethyst, shown on profile and leaderboard', asy
   await page.goto('/');
   // Freeze time so slow test taps don't count; only runFor() moves the clock.
   await page.clock.pauseAt(new Date('2026-01-01T09:05:00'));
+  await settle(page);
   await expect(page.locator('#profileRank')).toContainText('Unranked');
   await press(page.getByRole('button', { name: 'Play Ranked →' }));
   await expect(page.locator('#roundLabel')).toHaveText('Question 1 of 15');
@@ -428,7 +445,7 @@ test('Ranked: friend codes carry rank; unknown ranks are ignored', async ({ page
   await page.locator('#friendCodeInput').fill(enc({ v: 2, id: 'f-2', name: 'Sam', emoji: '🐶', rank: 'platinum', points: 50 }));
   await press(page.locator('#addFriendBtn'));
   await expect(page.locator('.leader-row', { hasText: 'Zoe' })).toContainText('Diamond rank');
-  await expect(page.locator('.leader-row', { hasText: 'Zoe' }).locator('img[alt="Diamond rank"]')).toBeVisible();
+  await expect(page.locator('.leader-row', { hasText: 'Zoe' }).locator('.score img[alt="Diamond rank"]')).toBeVisible();
   await expect(page.locator('.leader-row', { hasText: 'Sam' })).toContainText('Unranked');
   const mine = await page.evaluate(() => JSON.parse(atob(window.EmiApp.makeFriendCode())));
   expect(mine.rank).toBeNull();

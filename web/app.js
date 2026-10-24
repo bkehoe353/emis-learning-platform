@@ -72,6 +72,38 @@ const RANKS_BY_ID = Object.fromEntries(RANKS.map((r, i) => [r.id, { ...r, level:
 const rankForAverage = (avg) => [...RANKS].reverse().find((r) => avg <= r.maxAvg).id;
 const medalSrc = (id) => `ranks/${id}.svg`;
 
+// Badges: collectables earned by playing. Each one gives a small points reward once.
+const BADGE_REWARD = 50;
+const rankAtLeast = (p, id) => !!p.bestRank && RANKS_BY_ID[p.bestRank].level >= RANKS_BY_ID[id].level;
+const BADGES = [
+  { id: 'first',      icon: '🌱', name: 'First Answer',     desc: 'Get your first answer right',          test: (p) => p.correctTotal >= 1 },
+  { id: 'c100',       icon: '💯', name: 'Century',          desc: 'Get 100 answers right',                test: (p) => p.correctTotal >= 100 },
+  { id: 'c500',       icon: '🧠', name: 'Brain Power',      desc: 'Get 500 answers right',                test: (p) => p.correctTotal >= 500 },
+  { id: 'c1000',      icon: '🏛️', name: 'Maths Legend',     desc: 'Get 1,000 answers right',              test: (p) => p.correctTotal >= 1000 },
+  { id: 'run10',      icon: '🔥', name: 'On Fire',          desc: 'Get 10 right in a row',                test: (p) => p.bestStreak >= 10 },
+  { id: 'run25',      icon: '☄️', name: 'Unstoppable',      desc: 'Get 25 right in a row',                test: (p) => p.bestStreak >= 25 },
+  { id: 'perfect',    icon: '🎯', name: 'Perfect Round',    desc: 'Get every question right in a round',  test: (p) => p.perfectRounds >= 1 },
+  { id: 'perfect5',   icon: '🌟', name: 'Perfectionist',    desc: 'Get 5 perfect rounds',                 test: (p) => p.perfectRounds >= 5 },
+  { id: 'day3',       icon: '📅', name: '3-Day Streak',     desc: 'Practise 3 days in a row',             test: (p) => p.bestDailyStreak >= 3 },
+  { id: 'day7',       icon: '🗓️', name: 'Week Warrior',     desc: 'Practise 7 days in a row',             test: (p) => p.bestDailyStreak >= 7 },
+  { id: 'day30',      icon: '🏅', name: 'Monthly Master',   desc: 'Practise 30 days in a row',            test: (p) => p.bestDailyStreak >= 30 },
+  { id: 'speed20',    icon: '⚡', name: 'Lightning Fingers', desc: 'Get 20 right in one Speed Round',      test: (p) => p.bestSpeed >= 20 },
+  { id: 'mtc',        icon: '⏱️', name: 'Check Champion',   desc: 'Get 25 out of 25 in the Times Tables Check', test: (p) => p.mtcPerfect },
+  { id: 'gold',       icon: '🥇', name: 'Going for Gold',   desc: 'Reach Gold rank in Ranked',            test: (p) => rankAtLeast(p, 'gold') },
+  { id: 'diamond',    icon: '💎', name: 'Diamond Mind',     desc: 'Reach Diamond rank in Ranked',         test: (p) => rankAtLeast(p, 'diamond') },
+  { id: 'amethyst',   icon: '🔮', name: 'Amethyst Ace',     desc: 'Reach Amethyst rank in Ranked',        test: (p) => rankAtLeast(p, 'amethyst') },
+  { id: 'tricky',     icon: '🦸', name: 'Tricky Tamer',     desc: 'Beat 10 tricky facts',                 test: (p) => p.trickyCleared >= 10 },
+  { id: 'shopper',    icon: '🛍️', name: 'First Buy',        desc: 'Buy something in the shop',            test: (p) => p.ownedEmojis.length > 1 || p.ownedBackgrounds.length > 1 },
+  { id: 'collector',  icon: '🎨', name: 'Collector',        desc: 'Own 10 emojis from the shop',          test: (p) => p.ownedEmojis.length >= 11 },
+];
+const BADGES_BY_ID = Object.fromEntries(BADGES.map((b) => [b.id, b]));
+
+// Dates are the player's local calendar day, e.g. "2026-10-24".
+const dayString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const today = () => dayString(new Date(Date.now()));
+const yesterday = () => { const d = new Date(Date.now()); d.setDate(d.getDate() - 1); return dayString(d); };
+const dailyBonus = (days) => 10 + 10 * Math.min(days, 10);   // day 1: +20 … day 10+: +110
+
 function medalImg(id, size) {
   const img = document.createElement('img');
   img.src = medalSrc(id);
@@ -108,6 +140,16 @@ const BACKGROUND_CATALOG = [
   { id: 'deepspace', name: 'Deep Space', price: 18000, css: STARS + ',radial-gradient(circle at 30% 30%,#ff83b5cc,transparent 40%),radial-gradient(circle at 75% 65%,#8bd5ffcc,transparent 40%),linear-gradient(135deg,#05051f,#3a1c71)' },
 ];
 const DEFAULT_BACKGROUND = 'sunny';
+
+// Rarity comes from the price, so it works for emojis and backgrounds alike.
+const RARITIES = [
+  { id: 'common',    name: 'Common',     minPrice: 0 },
+  { id: 'rare',      name: 'Rare',       minPrice: 1000 },
+  { id: 'super',     name: 'Super Rare', minPrice: 5000 },
+  { id: 'epic',      name: 'Epic',       minPrice: 10000 },
+  { id: 'legendary', name: 'Legendary',  minPrice: 16000 },
+];
+const rarityFor = (price) => [...RARITIES].reverse().find((r) => price >= r.minPrice);
 const BACKGROUNDS_BY_ID = Object.fromEntries(BACKGROUND_CATALOG.map((b) => [b.id, b]));
 
 /* ---------- Helpers ---------- */
@@ -138,7 +180,12 @@ function newPlayerId() {
 }
 
 function loadProfile() {
-  const saved = storage.read(PROFILE_KEY, {}) || {};
+  return sanitizeProfile(storage.read(PROFILE_KEY, {}));
+}
+
+// Cleans saved (or restored) profile data so bad values can't break the game.
+function sanitizeProfile(saved) {
+  if (!saved || typeof saved !== 'object') saved = {};
   const owned = Array.isArray(saved.ownedEmojis) ? saved.ownedEmojis.filter((e) => typeof e === 'string') : [];
   if (!owned.includes(DEFAULT_EMOJI)) owned.unshift(DEFAULT_EMOJI);
   const ownedBgs = Array.isArray(saved.ownedBackgrounds) ? saved.ownedBackgrounds.filter((id) => BACKGROUNDS_BY_ID[id]) : [];
@@ -159,14 +206,43 @@ function loadProfile() {
       .filter(([k, v]) => /^\d{1,2}x\d{1,2}$/.test(k) && Number(v) > 0).map(([k, v]) => [k, Math.min(TRICKY_MAX, Math.floor(Number(v)))])),
     bestRank: RANKS_BY_ID[saved.bestRank] ? saved.bestRank : null,       // null = not ranked yet
     bestRankAvg: Number.isFinite(saved.bestRankAvg) ? saved.bestRankAvg : null,
+    dailyStreak: num(saved.dailyStreak),
+    bestDailyStreak: num(saved.bestDailyStreak),
+    lastPlayDay: typeof saved.lastPlayDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(saved.lastPlayDay) ? saved.lastPlayDay : null,
+    perfectRounds: num(saved.perfectRounds),
+    mtcPerfect: saved.mtcPerfect === true,
+    bestSpeed: num(saved.bestSpeed),
+    trickyCleared: num(saved.trickyCleared),
+    badges: Object.fromEntries(Object.entries(saved.badges && typeof saved.badges === 'object' ? saved.badges : {})
+      .filter(([id, day]) => BADGES_BY_ID[id] && typeof day === 'string').map(([id, day]) => [id, day.slice(0, 10)])),
   };
   return profile;
 }
 
+// Cleans one stored friend entry.
+function sanitizeFriend(f) {
+  if (!f || typeof f !== 'object' || typeof f.name !== 'string') return null;
+  const id = String(f.id || '').replace(/[^\p{L}\p{N}\p{Emoji}-]/gu, '').slice(0, 80);
+  if (!id || !Number.isFinite(Number(f.points))) return null;
+  return {
+    id, name: f.name.trim().slice(0, 20) || 'Friend',
+    emoji: String(f.emoji || DEFAULT_EMOJI).slice(0, 16),
+    bg: BACKGROUNDS_BY_ID[f.bg] ? f.bg : DEFAULT_BACKGROUND,
+    rank: RANKS_BY_ID[f.rank] ? f.rank : null,
+    rankAvg: RANKS_BY_ID[f.rank] && Number(f.rankAvg) > 0 && Number(f.rankAvg) <= 10 ? Math.round(Number(f.rankAvg) * 10) / 10 : null,
+    streak: Math.min(3650, Math.max(0, Math.floor(Number(f.streak)) || 0)),
+    streakDay: typeof f.streakDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.streakDay) ? f.streakDay : null,
+    points: Math.min(10_000_000, Math.max(0, Math.floor(Number(f.points)))),
+    updated: Number.isNaN(Date.parse(f.updated)) ? new Date().toISOString() : f.updated,
+  };
+}
+const sanitizeFriends = (list) => (Array.isArray(list) ? list.map(sanitizeFriend).filter(Boolean) : []);
+
 let profile = loadProfile();
-let friends = (() => { const f = storage.read(FRIENDS_KEY, []); return Array.isArray(f) ? f : []; })();
+let friends = sanitizeFriends(storage.read(FRIENDS_KEY, []));
 
 function saveProfile() {
+  checkBadges();
   storage.write(PROFILE_KEY, profile);
   renderProfile();
   renderStats();
@@ -207,9 +283,215 @@ function toggleSound() {
   if (soundOn) tone(660);
 }
 
+/* ---------- Celebrations: fox messages and confetti ---------- */
+
+const toastQueue = [];
+let toastBusy = false;
+
+function celebrate(message, { confetti = true } = {}) {
+  toastQueue.push(message);
+  if (confetti) burstConfetti();
+  if (!toastBusy) nextToast();
+}
+
+function nextToast() {
+  const el = $('toast');
+  const message = toastQueue.shift();
+  if (!message) { toastBusy = false; el.hidden = true; return; }
+  toastBusy = true;
+  el.textContent = '🦊 ' + message;
+  el.hidden = false;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');   // restart the pop-in animation
+  setTimeout(nextToast, 2800);
+}
+
+function burstConfetti() {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = $('confetti');
+  const colours = ['#ff83b5', '#ffd65a', '#8de4cb', '#8bd5ff', '#7357d9', '#ff9f7a'];
+  for (let i = 0; i < 70; i++) {
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.background = colours[i % colours.length];
+    piece.style.animationDelay = Math.random() * 0.35 + 's';
+    piece.style.animationDuration = 1.6 + Math.random() * 1.2 + 's';
+    piece.style.setProperty('--spin', (Math.random() * 720 - 360) + 'deg');
+    piece.style.setProperty('--drift', (Math.random() * 120 - 60) + 'px');
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 3400);
+  }
+}
+
+/* ---------- Daily streak ---------- */
+
+function currentDailyStreak() {
+  return profile.lastPlayDay === today() || profile.lastPlayDay === yesterday() ? profile.dailyStreak : 0;
+}
+
+// Called on the first correct answer each day. Does not save; the caller does.
+function registerPractice() {
+  const day = today();
+  if (profile.lastPlayDay === day) return;
+  profile.dailyStreak = profile.lastPlayDay === yesterday() ? profile.dailyStreak + 1 : 1;
+  profile.lastPlayDay = day;
+  profile.bestDailyStreak = Math.max(profile.bestDailyStreak, profile.dailyStreak);
+  const bonus = dailyBonus(profile.dailyStreak);
+  profile.points += bonus;
+  celebrate(profile.dailyStreak === 1
+    ? `Welcome back! Daily bonus: +${bonus} points`
+    : `🔥 ${profile.dailyStreak}-day streak! Daily bonus: +${bonus} points`);
+}
+
+/* ---------- Badges ---------- */
+
+// Gives any newly earned badges. Called from saveProfile().
+function checkBadges() {
+  for (const b of BADGES) {
+    if (!profile.badges[b.id] && b.test(profile)) {
+      profile.badges[b.id] = today();
+      profile.points += BADGE_REWARD;
+      celebrate(`Badge unlocked: ${b.icon} ${b.name}! +${BADGE_REWARD} points`);
+      tone(1180, 0.2);
+    }
+  }
+}
+
+function renderBadges() {
+  const grid = $('badgeGrid');
+  const earned = BADGES.filter((b) => profile.badges[b.id]).length;
+  $('badgeCount').textContent = `${earned} of ${BADGES.length} badges collected · each one gives +${BADGE_REWARD} points`;
+  grid.textContent = '';
+  for (const b of BADGES) {
+    const got = profile.badges[b.id];
+    const tile = document.createElement('div');
+    tile.className = 'badge-tile' + (got ? ' earned' : '');
+    tile.setAttribute('aria-label', `${b.name}: ${b.desc}. ${got ? 'Earned' : 'Not earned yet'}`);
+    const icon = document.createElement('span'); icon.className = 'badge-icon'; icon.textContent = got ? b.icon : '🔒';
+    const name = document.createElement('strong'); name.textContent = b.name;
+    const desc = document.createElement('small'); desc.textContent = b.desc;
+    tile.append(icon, name, desc);
+    grid.appendChild(tile);
+  }
+}
+
+/* ---------- Try it on (shop preview) ---------- */
+
+let tryOn = null;          // { kind, key } while previewing an item
+let tryOnTimer = null;
+
+function tryItem(kind, key) {
+  clearTimeout(tryOnTimer);
+  tryOn = { kind, key };
+  tryOnTimer = setTimeout(endTryOn, 6000);
+  renderProfile();
+  $('profileAvatar').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  tone(760, 0.08);
+}
+
+function endTryOn() {
+  clearTimeout(tryOnTimer);
+  tryOnTimer = null;
+  if (!tryOn) return;
+  tryOn = null;
+  renderProfile();
+}
+
+const shownEmoji = () => (tryOn && tryOn.kind === 'emoji' ? tryOn.key : profile.selectedEmoji);
+const shownBackground = () => (tryOn && tryOn.kind === 'bg' ? tryOn.key : profile.selectedBackground);
+
+/* ---------- Progress backup ---------- */
+// A backup code holds this device's whole profile and friends list. It has a
+// checksum so a code that was copied wrongly is rejected (it is not tamper-proof).
+
+function checksum(text) {
+  let h = 2166136261;
+  for (const ch of text) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return h.toString(36);
+}
+
+function makeBackupCode() {
+  const body = JSON.stringify({ p: profile, f: friends });
+  return 'EMI1-' + toBase64(JSON.stringify({ b: body, s: checksum(body) }));
+}
+
+function readBackupCode(code) {
+  try {
+    const text = String(code).trim();
+    if (!text.startsWith('EMI1-')) return null;
+    const wrapper = JSON.parse(fromBase64(text.slice(5)));
+    if (typeof wrapper.b !== 'string' || checksum(wrapper.b) !== wrapper.s) return null;
+    const data = JSON.parse(wrapper.b);
+    if (!data || typeof data.p !== 'object') return null;
+    return { profile: sanitizeProfile(data.p), friends: sanitizeFriends(data.f) };
+  } catch {
+    return null;
+  }
+}
+
+function showBackupMessage(msg) { $('backupMessage').textContent = msg; }
+
+async function createBackup(share) {
+  const code = makeBackupCode();
+  $('backupCode').value = code;
+  if (!share) { showBackupMessage('Backup code made! Copy it and keep it somewhere safe (for example, email it to a grown-up).'); return; }
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Emi’s Learning Platform backup', text: code });
+    } else if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(code);
+      showBackupMessage('Backup code copied! Paste it somewhere safe.');
+    } else {
+      $('backupCode').focus(); $('backupCode').select();
+      showBackupMessage('Select and copy the code above, then keep it somewhere safe.');
+    }
+  } catch {
+    showBackupMessage('Your backup code is shown above. Copy it and keep it somewhere safe.');
+  }
+}
+
+// Restoring replaces this device's progress, so it needs two taps.
+let pendingRestore = null;
+let pendingRestoreTimer = null;
+
+function resetRestoreButton() {
+  clearTimeout(pendingRestoreTimer);
+  pendingRestore = null;
+  $('restoreBtn').textContent = '♻️ Restore progress';
+  $('restoreBtn').classList.remove('confirm-danger');
+}
+
+function restoreBackup() {
+  const restored = readBackupCode($('restoreInput').value);
+  if (!restored) { resetRestoreButton(); showBackupMessage('That backup code doesn’t look right. Make sure you copied the whole code, starting with EMI1-.'); return; }
+  const code = $('restoreInput').value.trim();
+  if (pendingRestore !== code) {
+    resetRestoreButton();
+    pendingRestore = code;
+    $('restoreBtn').textContent = 'Tap again to replace this device’s progress';
+    $('restoreBtn').classList.add('confirm-danger');
+    showBackupMessage(`This backup has ${restored.profile.points.toLocaleString()} points for ${restored.profile.name || 'your character'}. It will replace the progress on this device.`);
+    pendingRestoreTimer = setTimeout(resetRestoreButton, 6000);
+    return;
+  }
+  resetRestoreButton();
+  profile = restored.profile;
+  friends = restored.friends;
+  storage.write(FRIENDS_KEY, friends);
+  $('profileName').value = profile.name;
+  $('restoreInput').value = '';
+  saveProfile();
+  showBackupMessage('Progress restored!');
+  celebrate(`Welcome back${profile.name ? ', ' + profile.name : ''}! Your progress is restored.`);
+}
+
 /* ---------- Profile, stats and shop ---------- */
 
 function renderStats() {
+  const days = currentDailyStreak();
+  $('dayStreak').textContent = days.toLocaleString();
+  $('dayStreakHint').textContent = profile.lastPlayDay === today() ? 'Day streak ✓ today'
+    : days > 0 ? 'Play today to keep it!' : 'Day streak';
   $('stars').textContent = profile.stars.toLocaleString();
   $('correctCount').textContent = profile.correctTotal.toLocaleString();
   $('streak').textContent = profile.bestStreak.toLocaleString();
@@ -241,7 +523,7 @@ const SHOPS = {
       const swatch = document.createElement('span');
       swatch.className = 'bg-swatch';
       swatch.style.background = item.css;
-      swatch.textContent = profile.selectedEmoji;   // shows how it will look
+      swatch.textContent = shownEmoji();   // shows how it will look
       return swatch;
     },
   },
@@ -251,8 +533,10 @@ const backgroundCss = (id) => (BACKGROUNDS_BY_ID[id] || BACKGROUNDS_BY_ID[DEFAUL
 
 function renderProfile() {
   $('points').textContent = profile.points.toLocaleString();
-  $('profileAvatar').textContent = profile.selectedEmoji;
-  $('profileAvatar').style.background = backgroundCss(profile.selectedBackground);
+  $('profileAvatar').textContent = shownEmoji();
+  $('profileAvatar').style.background = backgroundCss(shownBackground());
+  $('profileAvatar').classList.toggle('trying', !!tryOn);
+  $('tryOnNote').hidden = !tryOn;
   $('profileTitle').textContent = profile.name || 'Your Character';
   const badge = $('profileRank');
   badge.textContent = '';
@@ -265,6 +549,7 @@ function renderProfile() {
   }
   renderShop('emoji', $('shopGrid'));
   renderShop('bg', $('bgGrid'));
+  renderBadges();
 }
 
 // Each shop shows its first SHOP_PREVIEW items until "See more" is tapped.
@@ -292,7 +577,9 @@ function renderShop(kind, grid) {
     const owned = shop.owned().includes(key);
     const chosen = shop.selected() === key;
     const card = document.createElement('div');
-    card.className = 'emoji-item' + (chosen ? ' chosen' : '');
+    const rarity = rarityFor(item.price);
+    card.className = `emoji-item rarity-${rarity.id}` + (chosen ? ' chosen' : '');
+    const chip = document.createElement('span'); chip.className = 'rarity-chip'; chip.textContent = rarity.name;
     const name = document.createElement('strong'); name.textContent = item.name;
     const price = document.createElement('small'); price.textContent = item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
@@ -311,7 +598,17 @@ function renderShop(kind, grid) {
       btn.disabled = short > 0;
       btn.addEventListener('click', () => buyItem(kind, item));
     }
-    card.append(shop.preview(item), name, price, btn);
+    card.append(chip, shop.preview(item), name, price, btn);
+    if (!owned) {
+      const trying = tryOn && tryOn.kind === kind && tryOn.key === key;
+      const tryBtn = document.createElement('button');
+      tryBtn.type = 'button';
+      tryBtn.className = 'try-btn' + (trying ? ' trying' : '');
+      tryBtn.textContent = trying ? '👀 Trying on' : '👀 Try on';
+      tryBtn.setAttribute('aria-label', 'Try on ' + label);
+      tryBtn.addEventListener('click', () => (trying ? endTryOn() : tryItem(kind, key)));
+      card.appendChild(tryBtn);
+    }
     grid.appendChild(card);
   }
 }
@@ -319,6 +616,7 @@ function renderShop(kind, grid) {
 function useItem(kind, key) {
   const shop = SHOPS[kind];
   if (!shop.owned().includes(key)) return;
+  endTryOn();
   shop.select(key);
   saveProfile();
 }
@@ -350,11 +648,15 @@ function buyItem(kind, item) {
     return;
   }
   clearPendingBuy();
+  endTryOn();
   profile.points -= item.price;
   shop.owned().push(key);
   shop.select(key);
   saveProfile();
   tone(900, 0.16);
+  const rarity = rarityFor(item.price);
+  const fancy = rarity.minPrice >= 10000 ? `a ${rarity.name.toUpperCase()} ` : '';   // shout about Epic and Legendary
+  celebrate(kind === 'emoji' ? `You got ${fancy}${item.emoji} ${item.name}!` : `You got ${fancy || 'the '}${item.name} background!`);
 }
 
 function showShopTab(kind) {
@@ -365,6 +667,7 @@ function showShopTab(kind) {
   }
   $('emojiPanel').hidden = kind !== 'emoji';
   $('bgPanel').hidden = kind !== 'bg';
+  $('badgePanel').hidden = kind !== 'badges';
 }
 
 function saveName() {
@@ -388,7 +691,8 @@ function fromBase64(code) {
 function makeFriendCode() {
   return toBase64(JSON.stringify({
     v: 2, id: profile.playerId, name: profile.name || 'Maths Champion',
-    emoji: profile.selectedEmoji || DEFAULT_EMOJI, bg: profile.selectedBackground, rank: profile.bestRank, points: profile.points,
+    emoji: profile.selectedEmoji || DEFAULT_EMOJI, bg: profile.selectedBackground, rank: profile.bestRank, rankAvg: profile.bestRankAvg,
+    streak: currentDailyStreak(), streakDay: profile.lastPlayDay, points: profile.points,
   }));
 }
 
@@ -402,9 +706,7 @@ function decodeFriendCode(code) {
       ? data.id.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 64)
       : 'v1-' + name.toLowerCase() + '-' + emoji;
     if (!id) return null;
-    const bg = BACKGROUNDS_BY_ID[data.bg] ? data.bg : DEFAULT_BACKGROUND;   // only known backgrounds
-    const rank = RANKS_BY_ID[data.rank] ? data.rank : null;                  // only known ranks
-    return { id, name, emoji, bg, rank, points: Math.min(10_000_000, Math.max(0, Math.floor(Number(data.points)))), updated: new Date().toISOString() };
+    return sanitizeFriend({ ...data, id, name, emoji, updated: new Date().toISOString() });
   } catch {
     return null;
   }
@@ -451,39 +753,64 @@ function removeFriend(id) {
   saveFriends();
 }
 
+// Leaderboard order: best Ranked medal first; same medal → faster average time;
+// still tied → more points. Players with no rank yet go at the bottom.
+function compareLeaders(a, b) {
+  const level = (p) => (p.rank && RANKS_BY_ID[p.rank] ? RANKS_BY_ID[p.rank].level : -1);
+  const avg = (p) => (p.rank && Number.isFinite(p.rankAvg) ? p.rankAvg : Infinity);
+  return level(b) - level(a) || avg(a) - avg(b) || b.points - a.points;
+}
+
+// A friend's streak comes from their last code. If that code is old, say so.
+function friendStreakText(person) {
+  if (!person.streak) return 'No day streak yet';
+  const text = `🔥 ${person.streak}-day streak`;
+  // Dates compare as text (YYYY-MM-DD). A date "ahead" of ours is just a different time zone, so it counts as current.
+  if (person.isYou || (person.streakDay && person.streakDay >= yesterday())) return text;
+  return text + ' (ask for a new code to update)';
+}
+
 function renderLeaderboard() {
   const box = $('leaderboard');
-  const everyone = [
-    { id: 'you', name: profile.name || 'You', emoji: profile.selectedEmoji, bg: profile.selectedBackground, rank: profile.bestRank, points: profile.points, isYou: true },
-    ...friends,
-  ].sort((a, b) => b.points - a.points);
+  const you = {
+    id: 'you', name: profile.name || 'You', emoji: profile.selectedEmoji, bg: profile.selectedBackground,
+    rank: profile.bestRank, rankAvg: profile.bestRankAvg, streak: currentDailyStreak(), points: profile.points, isYou: true,
+  };
+  const everyone = [you, ...friends].sort(compareLeaders);
   box.textContent = '';
-  const title = document.createElement('h3'); title.textContent = '🏆 Points leaderboard';
-  box.appendChild(title);
+  const title = document.createElement('h3'); title.textContent = '🏆 Leaderboard';
+  const how = document.createElement('p'); how.className = 'shop-note';
+  how.textContent = 'Ordered by best Ranked medal. Same medal? The faster average time wins. Play Ranked to climb!';
+  box.append(title, how);
   if (!friends.length) {
     const empty = document.createElement('p'); empty.className = 'shop-note';
     empty.textContent = 'No friends added yet. Share your code, then paste a friend’s code above.';
     box.appendChild(empty);
   }
   everyone.forEach((person, index) => {
-    const row = document.createElement('div'); row.className = 'leader-row';
-    const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = ['🥇', '🥈', '🥉'][index] || '#' + (index + 1);
+    const row = document.createElement('div'); row.className = 'leader-row' + (person.isYou ? ' you' : '');
+    const place = document.createElement('span'); place.className = 'rank place-' + (index + 1);
+    place.textContent = index + 1 + (['st', 'nd', 'rd'][index] || 'th');
+    place.setAttribute('aria-label', `Place ${index + 1}`);
     const face = document.createElement('span'); face.className = 'face'; face.textContent = person.emoji;
     face.style.background = backgroundCss(person.bg);
     const details = document.createElement('div'); details.className = 'person';
     const name = document.createElement('strong'); name.textContent = person.name + (person.isYou ? ' (You)' : '');
-    const note = document.createElement('small');
-    note.textContent = person.isYou ? 'Your current score' : 'Score from their code on ' + new Date(person.updated).toLocaleDateString();
-    const rankLine = document.createElement('span');
-    rankLine.className = 'leader-rank';
-    if (person.rank && RANKS_BY_ID[person.rank]) {
-      rankLine.append(medalImg(person.rank, 20), RANKS_BY_ID[person.rank].name + ' rank');
+    const rankLine = document.createElement('span'); rankLine.className = 'leader-rank';
+    const ranked = person.rank && RANKS_BY_ID[person.rank];
+    if (ranked) {
+      rankLine.append(medalImg(person.rank, 20), RANKS_BY_ID[person.rank].name + ' rank' + (Number.isFinite(person.rankAvg) ? ` · ${person.rankAvg.toFixed(1)}s` : ''));
     } else {
       rankLine.textContent = 'Unranked';
     }
-    details.append(name, rankLine, note);
-    const score = document.createElement('span'); score.className = 'score'; score.textContent = person.points.toLocaleString() + ' pts';
-    row.append(rank, face, details, score);
+    const streakLine = document.createElement('span'); streakLine.className = 'leader-streak';
+    streakLine.textContent = friendStreakText(person);
+    const note = document.createElement('small');
+    note.textContent = (person.isYou ? 'You · ' : 'From their code on ' + new Date(person.updated).toLocaleDateString() + ' · ') + person.points.toLocaleString() + ' pts';
+    details.append(name, rankLine, streakLine, note);
+    const medal = document.createElement('span'); medal.className = 'score';
+    if (ranked) medal.appendChild(medalImg(person.rank, 40)); else medal.textContent = '—';
+    row.append(place, face, details, medal);
     if (!person.isYou) {
       const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove';
       remove.setAttribute('aria-label', 'Remove ' + person.name);
@@ -552,7 +879,10 @@ function recordFact(factors, correct) {
   if (!factors) return;
   const key = factKey(...factors);
   const next = (profile.trickyFacts[key] || 0) + (correct ? -1 : 2);
-  if (next <= 0) delete profile.trickyFacts[key];
+  if (next <= 0) {
+    if (profile.trickyFacts[key]) profile.trickyCleared++;   // a tricky fact has been beaten
+    delete profile.trickyFacts[key];
+  }
   else profile.trickyFacts[key] = Math.min(TRICKY_MAX, next);
 }
 
@@ -699,6 +1029,7 @@ function submitAnswer(value, btn) {
     game.score++;
     game.streak++;
     profile.points += POINTS_PER_CORRECT;                 // once per question: answers are locked above
+    registerPractice();                                    // daily streak (first correct answer of the day)
     profile.correctTotal++;
     profile.bestStreak = Math.max(profile.bestStreak, game.streak);
     saveProfile();
@@ -751,7 +1082,15 @@ function finishRound() {
   game.locked = true;
   clearTimers();
   const total = game.config.total;
+  const perfect = game.score === total;
+  if (perfect) {
+    profile.perfectRounds++;
+    if (game.mode === 'mtc') profile.mtcPerfect = true;
+    saveProfile();
+  }
   const star = awardStarIfEarned();
+  if (perfect) celebrate(`Perfect round! ${total} out of ${total}!`);
+  else if (star) celebrate('You earned a star! ⭐');
   $('nextBtn').hidden = true;
   $('restartBtn').hidden = false;
   $('progress').style.width = '100%';
@@ -785,6 +1124,7 @@ function showRankResult() {
   const isNewBest = !profile.bestRank || rank.level > RANKS_BY_ID[profile.bestRank].level
     || (rankId === profile.bestRank && avg < (profile.bestRankAvg ?? Infinity));
   if (isNewBest) {
+    celebrate(`New best rank: ${rank.name}!`);
     profile.bestRank = rankId;
     profile.bestRankAvg = Math.round(avg * 10) / 10;
     saveProfile();
@@ -820,7 +1160,10 @@ function endSpeedRound() {
   game.ended = true;
   game.locked = true;
   clearTimers();
+  profile.bestSpeed = Math.max(profile.bestSpeed, game.score);
+  saveProfile();
   const star = awardStarIfEarned();
+  if (star) celebrate(`Speedy! ${game.score} in 60 seconds! ⭐`);
   $('answers').textContent = '';
   $('question').textContent = '🏆 Amazing effort!';
   $('questionHint').textContent = 'Every question helps your brain grow.';
@@ -862,6 +1205,10 @@ function pressKey(key) {
 function init() {
   document.querySelectorAll('[data-game]').forEach((btn) => btn.addEventListener('click', () => startGame(btn.dataset.game)));
   $('soundToggle').addEventListener('click', toggleSound);
+  $('makeBackupBtn').addEventListener('click', () => createBackup(false));
+  $('shareBackupBtn').addEventListener('click', () => createBackup(true));
+  $('restoreBtn').addEventListener('click', restoreBackup);
+  $('restoreInput').addEventListener('input', resetRestoreButton);
   $('emojiMore').addEventListener('click', () => toggleShopMore('emoji'));
   $('bgMore').addEventListener('click', () => toggleShopMore('bg'));
   document.querySelectorAll('.shop-tab').forEach((tab) => tab.addEventListener('click', () => showShopTab(tab.dataset.shop)));
@@ -897,6 +1244,6 @@ function init() {
 }
 
 // Exposed for automated tests.
-window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile };
+window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor };
 
 init();

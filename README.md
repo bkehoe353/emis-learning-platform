@@ -51,8 +51,8 @@ This matters: Safari can delete saved progress for websites that haven't been vi
 
 ## What's saved, and what's shared
 
-- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis and backgrounds, best rank, tricky facts, friends list. Nothing is sent to a server.
-- **Friend codes** contain only the nickname, chosen emoji and background, best rank, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
+- **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis and backgrounds, best rank, tricky facts, day streak, badges, friends list. Nothing is sent to a server.
+- **Friend codes** contain only the nickname, chosen emoji and background, best rank and rank time, day streak, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
 - A live leaderboard would need an online database (such as Supabase or Firebase). That's a later decision, because it would put children's nicknames and scores online.
 
 ## Games
@@ -62,5 +62,19 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 **Ranked:** 15 typed questions, up to 10 s each. Your rank comes from your average time per question. A wrong answer or a timeout counts as 10 s. Amethyst ≤ 2.5 s · Diamond ≤ 3.5 s · Gold ≤ 5 s · Silver ≤ 7 s · Bronze otherwise. Your profile and friend code show your best rank ever. Medal images are in `web/ranks/` (made by `node tools/make-medals.mjs`).
 
 **Personalised practice:** facts you get wrong (e.g. 7 × 8) are remembered on the device. About 3 in 10 questions in the other games come from these tricky facts, never the same one twice in a row, marked "🎯 Practice time". Each correct answer counts a fact down until it is forgotten. Ranked stays random so it is fair between friends.
+
+**Daily streak:** the first correct answer each day adds to your day streak and gives a daily bonus (+20 on day 1, rising to +110 from day 10). Miss a day and it starts again.
+
+**Badges:** 19 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
+
+**Celebrations:** confetti and a fox message for perfect rounds, stars, new ranks, badges, streaks and purchases. Confetti is skipped if the device asks for reduced motion.
+
+**Rarities:** every emoji and background is Common (under 1,000), Rare (1,000+), Super Rare (5,000+), Epic (10,000+) or Legendary (16,000+), shown with a coloured label. Legendary cards shimmer.
+
+**Try it on:** any shop item can be previewed on your character for 6 seconds before buying.
+
+**Leaderboard:** ordered by best Ranked medal, then faster average time, then points. It shows each person’s medal, rank time, day streak and points. Friends’ details come from their latest friend code.
+
+**Progress backup:** “Make backup code” creates a code (starting with EMI1-) holding all progress and friends. Pasting it into “Restore” on any device brings everything back (two taps, because it replaces that device’s progress). A checksum rejects codes that were copied wrongly. It is not tamper-proof.
 
 Every correct answer earns +10 points, once per question. Points buy emojis and backgrounds in the Shop, which has an Emojis tab and a Backgrounds tab. A star is earned for a great round (8/10, 20/25, or 15 in a Speed Round).

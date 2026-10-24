@@ -61,3 +61,55 @@ button:active{transform:scale(.97)}
 .rank-step small{font-weight:800;color:#68758b}
 .leader-rank{display:flex;align-items:center;gap:4px;font-size:.85rem;font-weight:800;color:#5b43ba}
 .see-more{display:block;margin:14px auto 0;background:#f1edff;color:#5b43ba;border:2px solid #e3dcf8;min-height:48px;padding:12px 22px}
+
+/* --- Day streak stat (4 stats) --- */
+.stats{grid-template-columns:repeat(4,1fr)}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* --- Celebrations --- */
+.toast{pointer-events:none;position:fixed;left:50%;top:max(16px,env(safe-area-inset-top));transform:translateX(-50%);z-index:50;background:#fff;color:var(--ink);border:3px solid #ffd65a;border-radius:20px;padding:14px 20px;font-weight:900;font-size:1.1rem;box-shadow:0 12px 30px #5545a040;max-width:min(92vw,520px);text-align:center}
+.toast.show{animation:toast-pop .35s ease-out}
+@keyframes toast-pop{from{transform:translateX(-50%) scale(.6);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+.confetti-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+.confetti-piece{position:absolute;top:-16px;width:10px;height:14px;border-radius:3px;animation:confetti-fall 2s ease-in forwards}
+@keyframes confetti-fall{to{transform:translate(var(--drift),105vh) rotate(var(--spin));opacity:.9}}
+
+/* --- Try it on --- */
+.emoji-item .try-btn{margin-top:6px;background:#fff;color:#5b43ba;border:2px solid #e3dcf8}
+.emoji-item .try-btn.trying{background:#fff5c8;border-color:#e8b93c;color:var(--ink)}
+.avatar.trying{box-shadow:0 0 0 3px #ffd65a,0 0 18px #ffd65a}
+.try-note{margin:0 0 6px!important;font-weight:900;color:#a8740a!important}
+
+/* --- Badges --- */
+.badge-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
+@media(max-width:600px){.badge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.badge-tile{border:2px dashed #e3dcf8;border-radius:16px;padding:12px 8px;text-align:center;background:#faf9fd;color:#8c95a8}
+.badge-tile.earned{border:2px solid #ffd65a;background:#fffbea;color:var(--ink)}
+.badge-icon{display:block;font-size:2rem;margin-bottom:4px}
+.badge-tile:not(.earned) .badge-icon{filter:grayscale(1);opacity:.6}
+.badge-tile small{display:block;margin-top:3px;line-height:1.35}
+
+/* --- Backup --- */
+#restoreBtn.confirm-danger{background:#ffe0e8;border-color:#f17c9e;color:#8a2349}
+.leader-row.you{border-color:#c9b8ff;background:#f6f0ff}
+.leader-streak{display:block;font-size:.85rem;font-weight:800;color:#d45d3a}
+.leader-row .person small{display:block;color:#68758b}
+
+/* --- Rarities --- */
+.rarity-key{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.rarity-chip{display:inline-block;border-radius:100px;padding:3px 10px;font-size:.72rem;font-weight:900;letter-spacing:.3px;text-transform:uppercase;margin-bottom:6px}
+.rarity-common .rarity-chip,.rarity-chip.common{background:#eef1f6;color:#5d6778}
+.rarity-rare .rarity-chip,.rarity-chip.rare{background:#e0f2ff;color:#1f6fb2}
+.rarity-super .rarity-chip,.rarity-chip.super{background:#efe8ff;color:#5b43ba}
+.rarity-epic .rarity-chip,.rarity-chip.epic{background:#ffe3ef;color:#b0306a}
+.rarity-legendary .rarity-chip,.rarity-chip.legendary{background:linear-gradient(90deg,#ffe27a,#ffc93c,#ffe27a);color:#6b4700}
+.emoji-item.rarity-rare{border-color:#9fd8ff}
+.emoji-item.rarity-super{border-color:#c4b2ff;background:#fbf9ff}
+.emoji-item.rarity-epic{border-color:#ff9cc6;background:#fff8fb}
+.emoji-item.rarity-legendary{border-color:#ffc93c;background:linear-gradient(160deg,#fffdf0,#fff3c4);animation:legendary-glow 2.4s ease-in-out infinite}
+@keyframes legendary-glow{50%{box-shadow:0 0 14px #ffc93c99}}
+.emoji-item.chosen{box-shadow:0 0 0 3px #7357d9}
+.leader-row .rank{width:46px;height:46px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:.95rem;font-weight:900;background:#eef1f6;color:#5d6778}
+.leader-row .rank.place-1{background:#7357d9;color:#fff}
+.leader-row .rank.place-2{background:#b9a3ff;color:#fff}
+.leader-row .rank.place-3{background:#e3dcf8;color:#5b43ba}
