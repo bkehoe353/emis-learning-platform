@@ -10,7 +10,7 @@ const POINTS_PER_CORRECT = 10;
 // Personalised practice (see "Personalised practice" below).
 const TRICKY_CHANCE = 0.3;
 const TRICKY_MAX = 6;
-const PERSONALISED_MODES = new Set(['mix', 'table', 'speed', 'missing', 'truefalse', 'division', 'mtc']);   // not Ranked: keep it fair
+const PERSONALISED_MODES = new Set(['mix', 'table', 'speed', 'missing', 'truefalse', 'division', 'mtc', 'boss']);   // not Ranked or Friend Challenge: keep them fair
 
 const GAMES = {
   mix:       { title: '🎯 Quick Quiz',          total: 10, perQuestion: 60, starAt: 8 },
@@ -22,6 +22,8 @@ const GAMES = {
   word:      { title: '📚 Word Problems',        total: 10, starAt: 8 },
   mtc:       { title: '⏱️ Times Tables Check',   total: 25, perQuestion: 6, typed: true, starAt: 20 },
   ranked:    { title: '🏅 Ranked',               total: 15, perQuestion: 10, typed: true, ranked: true, starAt: 13 },
+  boss:      { title: '👾 Boss Battle',          total: 10, perQuestion: 15, boss: true, auto: true, starAt: 8 },
+  daily:     { title: '🏁 Friend Challenge',     total: 10, perQuestion: 20, daily: true, auto: true, starAt: 8 },
 };
 
 // Every emoji must appear only once (ownership is stored by emoji).
@@ -94,6 +96,10 @@ const BADGES = [
   { id: 'amethyst',   icon: '🔮', name: 'Amethyst Ace',     desc: 'Reach Amethyst rank in Ranked',        test: (p) => rankAtLeast(p, 'amethyst') },
   { id: 'tricky',     icon: '🦸', name: 'Tricky Tamer',     desc: 'Beat 10 tricky facts',                 test: (p) => p.trickyCleared >= 10 },
   { id: 'shopper',    icon: '🛍️', name: 'First Buy',        desc: 'Buy something in the shop',            test: (p) => p.ownedEmojis.length > 1 || p.ownedBackgrounds.length > 1 },
+  { id: 'pet',        icon: '🦊', name: 'Fox Friend',       desc: 'Grow your fox into a Super Fox',       test: (p) => p.petStage >= 3 },
+  { id: 'boss',       icon: '⚔️', name: 'Boss Beater',      desc: 'Defeat a weekly boss',                 test: (p) => p.bossesDefeated >= 1 },
+  { id: 'chest',      icon: '🧰', name: 'Treasure Hunter',  desc: 'Open a Weekly Treasure Chest',         test: (p) => p.chestsOpened >= 1 },
+  { id: 'challenge',  icon: '🏁', name: 'Challenger',       desc: 'Play a Friend Challenge',              test: (p) => p.challengesPlayed >= 1 },
   { id: 'collector',  icon: '🎨', name: 'Collector',        desc: 'Own 10 emojis from the shop',          test: (p) => p.ownedEmojis.length >= 11 },
 ];
 const BADGES_BY_ID = Object.fromEntries(BADGES.map((b) => [b.id, b]));
@@ -101,6 +107,8 @@ const BADGES_BY_ID = Object.fromEntries(BADGES.map((b) => [b.id, b]));
 // Dates are the player's local calendar day, e.g. "2026-10-24".
 const dayString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const today = () => dayString(new Date(Date.now()));
+// Monday of the current week, e.g. "2026-10-19". Weeks run Monday to Sunday.
+const weekStart = () => { const d = new Date(Date.now()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return dayString(d); };
 const yesterday = () => { const d = new Date(Date.now()); d.setDate(d.getDate() - 1); return dayString(d); };
 const dailyBonus = (days) => 10 + 10 * Math.min(days, 10);   // day 1: +20 … day 10+: +110
 
@@ -193,14 +201,54 @@ const EVENT_REWARDS = [
   { type: 'emoji', emoji: '🐆' },
 ];
 
+// Weekly Treasure Chest: practise on 4 different days in a week (Monday–Sunday).
+const CHEST_DAYS_NEEDED = 4;
+const CHEST_EMOJIS = [
+  { emoji: '🦥', name: 'Sloth' }, { emoji: '🦭', name: 'Seal' }, { emoji: '🐡', name: 'Blowfish' },
+  { emoji: '🐞', name: 'Ladybird' }, { emoji: '🦀', name: 'Crab' }, { emoji: '🐌', name: 'Snail' },
+].map((e) => ({ ...e, rarity: 'super', price: 0, event: true, source: 'chest' }));
+// Items that can only be won (Reward Event or Treasure Chest), shown in the shop but not for sale.
+const SPECIAL_EMOJIS = [...EVENT_EMOJIS, ...CHEST_EMOJIS];
+
+// Pet fox: grows as the player gets answers right. It is never sad.
+const PET_STAGES = [
+  { min: 0,    name: 'Baby Fox',      size: 2.4, accessory: '' },
+  { min: 25,   name: 'Little Fox',    size: 2.9, accessory: '🎀' },
+  { min: 100,  name: 'Clever Fox',    size: 3.4, accessory: '🎓' },
+  { min: 250,  name: 'Super Fox',     size: 3.8, accessory: '⭐' },
+  { min: 500,  name: 'Royal Fox',     size: 4.2, accessory: '👑' },
+  { min: 1000, name: 'Legendary Fox', size: 4.6, accessory: '✨' },
+];
+function petStageFor(correctTotal) { let i = 0; PET_STAGES.forEach((s, n) => { if (correctTotal >= s.min) i = n; }); return i; }
+
+// Weekly Boss Battle: a new boss every Monday.
+const BOSS_HP = 300;
+const BOSS_HIT = 10;
+const BOSS_CRITICAL = 15;          // for answers within 3 seconds
+const BOSS_REWARD = 300;
+const BOSSES = [
+  { name: 'Glitch Gremlin', face: '👾' }, { name: 'Kraken King', face: '🐙' }, { name: 'T-Rex Titan', face: '🦖' },
+  { name: 'Ghostly Gus', face: '👻' }, { name: 'Robo Rumble', face: '🤖' }, { name: 'Dragon Lord', face: '🐉' },
+];
+
 /* ---------- Helpers ---------- */
 
 const $ = (id) => document.getElementById(id);
-const rand = (n) => Math.floor(Math.random() * n) + 1;            // 1..n
-const randBetween = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+// All question randomness goes through rng(), so the Friend Challenge can swap in a
+// "seeded" generator that gives everyone the same questions on the same day.
+let rng = Math.random;
+function withRng(generator, fn) { const old = rng; rng = generator; try { return fn(); } finally { rng = old; } }
+// Small seeded random generator (mulberry32): same seed → same numbers.
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const hashText = (text) => { let h = 2166136261; for (const ch of text) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
+const rand = (n) => Math.floor(rng() * n) + 1;            // 1..n
+const randBetween = (lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
 const shuffle = (list) => {
   const a = [...list];
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 };
 
@@ -227,6 +275,7 @@ function loadProfile() {
 // Cleans saved (or restored) profile data so bad values can't break the game.
 function sanitizeProfile(saved) {
   if (!saved || typeof saved !== 'object') saved = {};
+  const isDay = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
   const owned = Array.isArray(saved.ownedEmojis) ? saved.ownedEmojis.filter((e) => typeof e === 'string') : [];
   if (!owned.includes(DEFAULT_EMOJI)) owned.unshift(DEFAULT_EMOJI);
   const ownedBgs = Array.isArray(saved.ownedBackgrounds) ? saved.ownedBackgrounds.filter((id) => BACKGROUNDS_BY_ID[id]) : [];
@@ -258,6 +307,24 @@ function sanitizeProfile(saved) {
       .filter(([id, day]) => BADGES_BY_ID[id] && typeof day === 'string').map(([id, day]) => [id, day.slice(0, 10)])),
     streakFreezes: Math.min(99, num(saved.streakFreezes)),
     event: sanitizeEvent(saved.event),
+    petName: typeof saved.petName === 'string' && saved.petName.trim() ? saved.petName.trim().slice(0, 16) : 'Foxy',
+    petStage: saved.petStage === undefined ? petStageFor(num(saved.correctTotal)) : Math.min(PET_STAGES.length - 1, num(saved.petStage)),
+    chest: {
+      week: isDay(saved.chest && saved.chest.week) ? saved.chest.week : null,
+      days: Array.isArray(saved.chest && saved.chest.days) ? [...new Set(saved.chest.days.filter(isDay))].slice(0, 7) : [],
+      opened: !!(saved.chest && saved.chest.opened === true),
+    },
+    chestsOpened: num(saved.chestsOpened),
+    boss: {
+      week: isDay(saved.boss && saved.boss.week) ? saved.boss.week : null,
+      hp: saved.boss && Number.isFinite(Number(saved.boss.hp)) ? Math.min(BOSS_HP, num(saved.boss.hp)) : BOSS_HP,
+      defeated: !!(saved.boss && saved.boss.defeated === true),
+    },
+    bossesDefeated: num(saved.bossesDefeated),
+    challenge: isDay(saved.challenge && saved.challenge.day)
+      ? { day: saved.challenge.day, score: Math.min(10, num(saved.challenge.score)), time: Math.min(9999, Math.max(0, Number(saved.challenge.time) || 0)) }
+      : null,
+    challengesPlayed: num(saved.challengesPlayed),
   };
   return profile;
 }
@@ -295,6 +362,10 @@ function sanitizeFriend(f) {
     rankAvg: RANKS_BY_ID[f.rank] && Number(f.rankAvg) > 0 && Number(f.rankAvg) <= 10 ? Math.round(Number(f.rankAvg) * 10) / 10 : null,
     streak: Math.min(3650, Math.max(0, Math.floor(Number(f.streak)) || 0)),
     streakDay: typeof f.streakDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.streakDay) ? f.streakDay : null,
+    // Friend Challenge: their first-try score on that day (score out of 10, total seconds).
+    chDay: typeof f.chDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.chDay) ? f.chDay : null,
+    chScore: Math.min(10, Math.max(0, Math.floor(Number(f.chScore)) || 0)),
+    chTime: Math.min(9999, Math.max(0, Number(f.chTime) || 0)),
     points: Math.min(10_000_000, Math.max(0, Math.floor(Number(f.points)))),
     updated: Number.isNaN(Date.parse(f.updated)) ? new Date().toISOString() : f.updated,
   };
@@ -305,17 +376,28 @@ let profile = loadProfile();
 let friends = sanitizeFriends(storage.read(FRIENDS_KEY, []));
 
 function saveProfile() {
+  checkPetGrowth();
   checkBadges();
   storage.write(PROFILE_KEY, profile);
+  renderAll();
+}
+
+function renderAll() {
   renderProfile();
   renderStats();
   renderLeaderboard();
   renderEvent();
+  renderChest();
+  renderPet();
+  renderBossCard();
+  renderDailyCard();
+  renderChallengeBoard();
 }
 
 function saveFriends() {
   storage.write(FRIENDS_KEY, friends);
   renderLeaderboard();
+  renderChallengeBoard();
 }
 
 /* ---------- Sound ---------- */
@@ -414,6 +496,7 @@ function applyStreakFreezes() {
 
 // Called on the first correct answer each day. Does not save; the caller does.
 function registerPractice() {
+  markChestDay();                       // counts towards this week's Treasure Chest
   const day = today();
   if (profile.lastPlayDay === day) return;
   applyStreakFreezes();
@@ -474,7 +557,7 @@ function recordExercise() {
   if (canEarn && ev.rounds >= EXERCISES_PER_DAY) {
     ev.unclaimed++;
     ev.lastEarnedDay = day;
-    celebrate(`🎁 Day ${ev.claimed + ev.unclaimed} reward unlocked! Tap “Claim” in the Reward Event.`);
+    celebrate(`🎁 Day ${ev.claimed + ev.unclaimed} reward unlocked! Claim it in the Event tab.`);
   } else if (canEarn) {
     const left = EXERCISES_PER_DAY - ev.rounds;
     celebrate(`${left} more exercise${left === 1 ? '' : 's'} today to unlock your event reward!`, { confetti: false });
@@ -559,6 +642,7 @@ function renderEvent() {
   $('eventPips').textContent = eventComplete() || ev.lastEarnedDay === today() ? '✅✅'
     : '✅'.repeat(Math.min(done, EXERCISES_PER_DAY)) + '⬜'.repeat(Math.max(0, EXERCISES_PER_DAY - done));
   $('eventFreezes').textContent = `❄️ Streak freezes: ${profile.streakFreezes}`;
+  updateTabDots();
 
   const track = $('eventTrack');
   track.textContent = '';
@@ -577,6 +661,264 @@ function renderEvent() {
     if (state === 'claimed') { const tick = document.createElement('span'); tick.className = 'event-tick'; tick.textContent = '✓'; tile.appendChild(tick); }
     track.appendChild(tile);
   }
+}
+
+/* ---------- Tabs: Play · Shop · Friends · Event ---------- */
+
+const PAGES = ['play', 'shop', 'friends', 'event'];
+
+function showPage(name) {
+  if (!PAGES.includes(name)) name = 'play';
+  // Leaving the Play page stops any game, so no timers keep running out of sight.
+  if (name !== 'play' && $('playArea').classList.contains('active')) closeGame();
+  for (const p of PAGES) {
+    $('page-' + p).hidden = p !== name;
+    const tab = $('tab-' + p);
+    tab.setAttribute('aria-selected', String(p === name));
+    tab.tabIndex = p === name ? 0 : -1;
+  }
+  window.scrollTo({ top: 0 });
+}
+
+// The dot on the Event tab shows when a reward or the chest is waiting.
+function updateTabDots() {
+  $('eventDot').hidden = !(profile.event.unclaimed > 0 || chestReady());
+}
+
+/* ---------- Weekly Treasure Chest ---------- */
+
+// A new week starts a new chest.
+function syncChestWeek() {
+  const week = weekStart();
+  if (profile.chest.week !== week) profile.chest = { week, days: [], opened: false };
+}
+const chestReady = () => { syncChestWeek(); return profile.chest.days.length >= CHEST_DAYS_NEEDED && !profile.chest.opened; };
+
+// Called on every correct answer; counts each day once.
+function markChestDay() {
+  syncChestWeek();
+  const day = today();
+  if (profile.chest.days.includes(day)) return;
+  profile.chest.days.push(day);
+  if (profile.chest.days.length === CHEST_DAYS_NEEDED && !profile.chest.opened) {
+    celebrate('🧰 Your Weekly Treasure Chest is ready! Open it in the Event tab.');
+  }
+}
+
+// Every prize is good and never a duplicate emoji.
+function rollChestPrize() {
+  const unowned = CHEST_EMOJIS.filter((e) => !profile.ownedEmojis.includes(e.emoji));
+  const roll = Math.random();
+  if (unowned.length && roll < 0.5) return { type: 'emoji', item: unowned[Math.floor(Math.random() * unowned.length)] };
+  if (roll < 0.8) return { type: 'points', amount: 250 + 50 * Math.floor(Math.random() * 6) };   // 250–500
+  return { type: 'freeze' };
+}
+
+let chestOpening = false;
+function openChest() {
+  if (!chestReady() || chestOpening) return;
+  chestOpening = true;
+  $('openChestBtn').disabled = true;
+  $('chestIcon').classList.add('opening');
+  tone(520, 0.12); setTimeout(() => tone(660, 0.12), 250); setTimeout(() => tone(820, 0.12), 500);
+  setTimeout(() => {
+    const prize = rollChestPrize();
+    let message;
+    if (prize.type === 'emoji') {
+      profile.ownedEmojis.push(prize.item.emoji);
+      profile.selectedEmoji = prize.item.emoji;
+      message = `🧰 Treasure! ${prize.item.emoji} ${prize.item.name} (Super Rare, chest-only)!`;
+    } else if (prize.type === 'points') {
+      profile.points += prize.amount;
+      message = `🧰 Treasure! +${prize.amount} points!`;
+    } else {
+      profile.streakFreezes += 1;
+      message = '🧰 Treasure! A ❄️ streak freeze to keep your streak safe!';
+    }
+    profile.chest.opened = true;
+    profile.chestsOpened++;
+    chestOpening = false;
+    $('chestIcon').classList.remove('opening');
+    $('openChestBtn').disabled = false;
+    saveProfile();
+    celebrate(message);
+  }, 900);
+}
+
+function renderChest() {
+  syncChestWeek();
+  const c = profile.chest;
+  const n = c.days.length;
+  $('openChestBtn').hidden = !chestReady();
+  $('chestIcon').classList.toggle('ready', chestReady());
+  $('chestStatus').textContent = c.opened ? '✅ You opened this week’s chest! A new one arrives on Monday.'
+    : n >= CHEST_DAYS_NEEDED ? '🎉 You practised on 4 days this week. Open your chest!'
+    : `Practise on ${CHEST_DAYS_NEEDED - n} more day${CHEST_DAYS_NEEDED - n === 1 ? '' : 's'} this week to open it (${n} of ${CHEST_DAYS_NEEDED} so far).`;
+  const days = $('chestDays');
+  days.textContent = '';
+  const [y, m, d] = c.week.split('-').map(Number);
+  ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((letter, i) => {
+    const date = dayString(new Date(y, m - 1, d + i));
+    const pip = document.createElement('span');
+    pip.className = 'chest-day' + (c.days.includes(date) ? ' done' : '') + (date === today() ? ' today' : '');
+    pip.textContent = c.days.includes(date) ? '✓' : letter;
+    days.appendChild(pip);
+  });
+  const owned = CHEST_EMOJIS.filter((e) => profile.ownedEmojis.includes(e.emoji)).length;
+  $('chestPrizes').textContent = `Possible prizes: 🪙 250–500 points · ❄️ a streak freeze · a chest-only emoji ${CHEST_EMOJIS.map((e) => e.emoji).join(' ')} (you have ${owned} of ${CHEST_EMOJIS.length}). One chest per week. Chests can’t be bought.`;
+  updateTabDots();
+}
+
+/* ---------- Pet fox ---------- */
+
+const PET_CHEERS = ['loves maths time with you!', 'is doing a happy dance!', 'thinks you are brilliant!', 'wants to practise the 7s!', 'gave you a high five! ✋'];
+
+function checkPetGrowth() {
+  const stage = petStageFor(profile.correctTotal);
+  if (stage > profile.petStage) {
+    profile.petStage = stage;
+    celebrate(`🦊 ${profile.petName} grew into a ${PET_STAGES[stage].name}!`);
+  }
+}
+
+function renderPet(mood) {
+  const stage = PET_STAGES[profile.petStage];
+  const next = PET_STAGES[profile.petStage + 1];
+  $('petBody').style.fontSize = stage.size + 'rem';
+  $('petAccessory').textContent = stage.accessory;
+  $('petBtn').classList.toggle('legendary', profile.petStage === PET_STAGES.length - 1);
+  $('petTitle').textContent = `${profile.petName} the ${stage.name}`;
+  $('petMood').textContent = mood || (profile.lastPlayDay === today()
+    ? `😊 ${profile.petName} is so happy you practised today!`
+    : `🦊 ${profile.petName} can’t wait to practise with you today!`);
+  if (next) {
+    const pct = ((profile.correctTotal - stage.min) / (next.min - stage.min)) * 100;
+    $('petProgress').style.width = Math.max(0, Math.min(100, pct)) + '%';
+    const left = next.min - profile.correctTotal;
+    $('petNext').textContent = `${left} more right answer${left === 1 ? '' : 's'} until ${profile.petName} grows into a ${next.name}!`;
+  } else {
+    $('petProgress').style.width = '100%';
+    $('petNext').textContent = `${profile.petName} is fully grown: a Legendary Fox! ✨`;
+  }
+  if (document.activeElement !== $('petNameInput')) $('petNameInput').value = profile.petName;
+}
+
+function petTheFox() {
+  const btn = $('petBtn');
+  btn.classList.remove('happy'); void btn.offsetWidth; btn.classList.add('happy');
+  tone(880, 0.08); setTimeout(() => tone(1175, 0.1), 90);
+  renderPet(`💛 ${profile.petName} ${PET_CHEERS[Math.floor(Math.random() * PET_CHEERS.length)]}`);
+}
+
+function savePetName() {
+  const name = $('petNameInput').value.trim().slice(0, 16);
+  if (!name) return;
+  profile.petName = name;
+  saveProfile();
+  renderPet(`🦊 Hello! My name is ${name}!`);
+}
+
+/* ---------- Weekly Boss Battle ---------- */
+
+const currentBoss = () => BOSSES[Math.abs(Math.floor(daysBetween('2026-01-05', weekStart()) / 7)) % BOSSES.length];
+
+// A new week brings a new boss with full health.
+function syncBoss() {
+  const week = weekStart();
+  if (profile.boss.week !== week) profile.boss = { week, hp: BOSS_HP, defeated: false };
+}
+
+function renderBossCard() {
+  syncBoss();
+  const boss = currentBoss();
+  $('bossCardIcon').textContent = boss.face;
+  const btn = $('bossPlayBtn');
+  if (profile.boss.defeated) {
+    $('bossCardText').textContent = `✅ You beat ${boss.name}! A new boss arrives on Monday.`;
+    btn.textContent = 'Beaten! ✅';
+    btn.disabled = true;
+  } else {
+    $('bossCardText').textContent = `${boss.face} ${boss.name} has ${profile.boss.hp} of ${BOSS_HP} HP left. Every right answer hits it. Fast answers are CRITICAL hits!`;
+    btn.textContent = 'Fight the boss →';
+    btn.disabled = false;
+  }
+}
+
+function renderBossPanel(hitText) {
+  const boss = currentBoss();
+  $('bossFace').textContent = boss.face;
+  $('bossName').textContent = boss.name;
+  $('bossHp').style.width = (profile.boss.hp / BOSS_HP) * 100 + '%';
+  $('bossHpText').textContent = `${profile.boss.hp} / ${BOSS_HP} HP`;
+  const hit = $('bossHit');
+  hit.textContent = hitText || '';
+  if (hitText) {
+    hit.classList.remove('show'); void hit.offsetWidth; hit.classList.add('show');
+    $('bossFace').classList.remove('hurt'); void $('bossFace').offsetWidth; $('bossFace').classList.add('hurt');
+  }
+}
+
+// Called for each correct answer in Boss Battle.
+function hitBoss(seconds) {
+  const critical = seconds <= 3;
+  const damage = critical ? BOSS_CRITICAL : BOSS_HIT;
+  profile.boss.hp = Math.max(0, profile.boss.hp - damage);
+  renderBossPanel(critical ? `💥 CRITICAL! −${damage}` : `−${damage}`);
+  if (profile.boss.hp === 0 && !profile.boss.defeated) {
+    profile.boss.defeated = true;
+    profile.bossesDefeated++;
+    profile.points += BOSS_REWARD;
+    celebrate(`🏆 You defeated ${currentBoss().name}! +${BOSS_REWARD} points`);
+    burstConfetti();
+  }
+}
+
+/* ---------- Friend Challenge of the Day ---------- */
+
+// Everyone gets the same 10 questions on the same date.
+function dailyQuestions(day = today()) {
+  return withRng(seededRandom(hashText('emi-daily-' + day)), () =>
+    Array.from({ length: GAMES.daily.total }, () => makeQuestion('mix', 2, [randBetween(2, 12), randBetween(2, 12)])));
+}
+
+const playedChallengeToday = () => !!profile.challenge && profile.challenge.day === today();
+
+function renderDailyCard() {
+  $('dailyCardText').textContent = playedChallengeToday()
+    ? `✅ Today: ${profile.challenge.score}/10 in ${profile.challenge.time.toFixed(1)}s. Play again for practice (only your first try counts).`
+    : 'Today’s 10 questions are the same for everyone. Only your first try counts!';
+}
+
+function renderChallengeBoard() {
+  const box = $('challengeBoard');
+  box.textContent = '';
+  const day = today();
+  const rows = friends.filter((f) => f.chDay === day).map((f) => ({ name: f.name, emoji: f.emoji, bg: f.bg, score: f.chScore, time: f.chTime }));
+  if (playedChallengeToday()) rows.push({ name: (profile.name || 'You') + ' (You)', emoji: profile.selectedEmoji, bg: profile.selectedBackground, score: profile.challenge.score, time: profile.challenge.time, isYou: true });
+  rows.sort((a, b) => b.score - a.score || a.time - b.time);
+  if (!rows.length) {
+    const p = document.createElement('p'); p.className = 'shop-note';
+    p.textContent = 'Nobody has played today’s challenge yet. Be the first! (Find it in the Play tab.)';
+    box.appendChild(p);
+    return;
+  }
+  if (!playedChallengeToday()) {
+    const p = document.createElement('p'); p.className = 'shop-note';
+    p.textContent = 'You haven’t played today’s challenge yet. Find it in the Play tab!';
+    box.appendChild(p);
+  }
+  rows.forEach((r, i) => {
+    const row = document.createElement('div'); row.className = 'leader-row' + (r.isYou ? ' you' : '');
+    const place = document.createElement('span'); place.className = 'rank place-' + (i + 1); place.textContent = i + 1 + (['st', 'nd', 'rd'][i] || 'th');
+    const face = document.createElement('span'); face.className = 'face'; face.textContent = r.emoji; face.style.background = backgroundCss(r.bg);
+    const details = document.createElement('div'); details.className = 'person';
+    const name = document.createElement('strong'); name.textContent = r.name;
+    const sub = document.createElement('small'); sub.textContent = `${r.time.toFixed(1)} seconds`;
+    details.append(name, sub);
+    const score = document.createElement('span'); score.className = 'score'; score.textContent = `${r.score}/10`;
+    row.append(place, face, details, score);
+    box.appendChild(row);
+  });
 }
 
 /* ---------- Try it on (shop preview) ---------- */
@@ -706,7 +1048,7 @@ function renderStats() {
 // a name, a price, and a way to draw its preview.
 const SHOPS = {
   emoji: {
-    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG, ...EVENT_EMOJIS],
+    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG, ...SPECIAL_EMOJIS],
     key: (item) => item.emoji,
     label: (item) => item.name,
     owned: () => profile.ownedEmojis,
@@ -786,7 +1128,7 @@ function renderShop(kind, grid) {
     card.className = `emoji-item rarity-${rarity.id}` + (chosen ? ' chosen' : '');
     const chip = document.createElement('span'); chip.className = 'rarity-chip'; chip.textContent = rarity.name;
     const name = document.createElement('strong'); name.textContent = item.name;
-    const price = document.createElement('small'); price.textContent = item.event ? '🎁 Event only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
+    const price = document.createElement('small'); price.textContent = item.source === 'chest' ? '🧰 Treasure Chest only' : item.event ? '🎁 Event only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
     btn.type = 'button';
     if (owned) {
@@ -795,10 +1137,11 @@ function renderShop(kind, grid) {
       btn.setAttribute('aria-label', (chosen ? 'Using ' : 'Use ') + label);
       btn.addEventListener('click', () => useItem(kind, key));
     } else if (item.event) {
-      btn.textContent = '🎁 Event reward';           // can only be won in the Reward Event
+      const fromChest = item.source === 'chest';      // can only be won, never bought
+      btn.textContent = fromChest ? '🧰 Chest prize' : '🎁 Event reward';
       btn.className = 'event-locked';
       btn.disabled = true;
-      btn.setAttribute('aria-label', `${label}: win it in the Reward Event`);
+      btn.setAttribute('aria-label', `${label}: win it in the ${fromChest ? 'Treasure Chest' : 'Reward Event'}`);
     } else {
       const short = item.price - profile.points;
       const confirming = pendingBuy === kind + ':' + key;
@@ -904,6 +1247,9 @@ function makeFriendCode() {
     v: 2, id: profile.playerId, name: profile.name || 'Maths Champion',
     emoji: profile.selectedEmoji || DEFAULT_EMOJI, bg: profile.selectedBackground, rank: profile.bestRank, rankAvg: profile.bestRankAvg,
     streak: currentDailyStreak(), streakDay: profile.lastPlayDay, points: profile.points,
+    chDay: profile.challenge ? profile.challenge.day : null,
+    chScore: profile.challenge ? profile.challenge.score : 0,
+    chTime: profile.challenge ? profile.challenge.time : 0,
   }));
 }
 
@@ -1057,8 +1403,8 @@ function makeQuestion(mode, table = 2, factors = null) {
     return { text: `${product} ÷ ${a} = ?`, hint: 'Division is multiplication in reverse!', answer: b, choices: fourChoices(b, () => rand(12)), factors: [a, b] };
   }
   if (mode === 'truefalse') {
-    const isTrue = Math.random() < 0.5;
-    let shown = isTrue ? product : product + (Math.random() < 0.5 ? rand(5) : -rand(5));
+    const isTrue = rng() < 0.5;
+    let shown = isTrue ? product : product + (rng() < 0.5 ? rand(5) : -rand(5));
     if (shown < 0) shown = product + rand(5);
     return { text: `${a} × ${b} = ${shown}`, hint: 'Is this multiplication fact true or false?', answer: isTrue ? 'True' : 'False', choices: ['True', 'False'], factors: [a, b] };
   }
@@ -1075,7 +1421,7 @@ function makeQuestion(mode, table = 2, factors = null) {
   // mix, table, speed
   return {
     text: `${a} × ${b} = ?`, hint: 'Choose the correct answer below', answer: product,
-    choices: fourChoices(product, () => (Math.random() < 0.6 ? product + rand(20) - 10 : rand(12) * rand(12))),
+    choices: fourChoices(product, () => (rng() < 0.6 ? product + rand(20) - 10 : rand(12) * rand(12))),
     factors: [a, b],
   };
 }
@@ -1126,12 +1472,19 @@ function clearTimers() {
 
 function startGame(mode) {
   if (!GAMES[mode]) mode = 'mix';
+  if (mode === 'boss') {
+    syncBoss();
+    if (profile.boss.defeated) { celebrate('✅ You already beat this week’s boss. A new one arrives on Monday!', { confetti: false }); return; }
+  }
   clearTimers();
   Object.assign(game, { mode, config: GAMES[mode], qNum: 0, score: 0, streak: 0, locked: false, ended: false, typed: '', missed: [], times: [] });
+  game.dailySet = mode === 'daily' ? dailyQuestions() : null;
   $('rankResult').hidden = true;
   $('playArea').classList.add('active');
   $('tableControls').hidden = mode !== 'table';
-  $('gameTitle').textContent = game.config.title;
+  $('bossPanel').hidden = mode !== 'boss';
+  if (mode === 'boss') renderBossPanel();
+  $('gameTitle').textContent = mode === 'boss' ? `${currentBoss().face} Boss Battle: ${currentBoss().name}` : game.config.title;
   $('restartBtn').hidden = true;
   $('nextBtn').hidden = true;
   $('missed').hidden = true;
@@ -1156,8 +1509,8 @@ function newQuestion() {
   game.locked = false;
   game.typed = '';
   const lastKey = game.question && game.question.factors ? factKey(...game.question.factors) : null;
-  const tricky = pickTrickyFactors(game.mode, $('tableSelect').value, lastKey);
-  game.question = makeQuestion(game.mode, $('tableSelect').value, tricky);
+  const tricky = game.dailySet ? null : pickTrickyFactors(game.mode, $('tableSelect').value, lastKey);
+  game.question = game.dailySet ? { ...game.dailySet[game.qNum] } : makeQuestion(game.mode, $('tableSelect').value, tricky);
   game.question.tricky = !!tricky;
   const q = game.question;
 
@@ -1220,7 +1573,7 @@ function questionTimedOut() {
   recordFact(game.question.factors, false);
   saveProfile();
   if (game.config.typed) { game.missed.push(game.question.fact); $('typedAnswer').classList.add('wrong'); }
-  if (game.config.ranked) game.times.push(game.config.perQuestion);
+  if (game.config.ranked || game.config.daily) game.times.push(game.config.perQuestion);
   $('feedback').textContent = `⏰ Time’s up! The answer was ${game.question.answer}.`;
   tone(240, 0.2, 'triangle');
   afterAnswer();
@@ -1230,10 +1583,10 @@ function submitAnswer(value, btn) {
   if (game.locked || game.ended) return;
   lockAnswers();
   const correct = String(value) === String(game.question.answer);
-  if (game.config.ranked) {
-    const seconds = Math.min(game.config.perQuestion, (Date.now() - game.questionStart) / 1000);
-    game.times.push(correct ? seconds : game.config.perQuestion);   // wrong answers count as the full time
-  }
+  const seconds = Math.min(game.config.perQuestion || Infinity, (Date.now() - game.questionStart) / 1000);
+  if (game.config.ranked) game.times.push(correct ? seconds : game.config.perQuestion);   // wrong answers count as the full time
+  if (game.config.daily) game.times.push(seconds);                                        // challenge: total time is the tie-break
+  if (correct && game.config.boss) hitBoss(seconds);
   recordFact(game.question.factors, correct);
   if (!correct) saveProfile();   // a correct answer saves below
   if (correct) {
@@ -1250,7 +1603,9 @@ function submitAnswer(value, btn) {
     game.streak = 0;
     if (btn) btn.classList.add('wrong');
     if (game.config.typed) game.missed.push(game.question.fact);
-    $('feedback').textContent = `Nearly! The answer is ${game.question.answer}. Keep going!`;
+    $('feedback').textContent = game.config.boss
+      ? `💨 The boss dodged! The answer is ${game.question.answer}. Keep going!`
+      : `Nearly! The answer is ${game.question.answer}. Keep going!`;
     tone(240, 0.2, 'triangle');
   }
   if (game.config.typed) $('typedAnswer').classList.add(correct ? 'correct' : 'wrong');
@@ -1260,6 +1615,14 @@ function submitAnswer(value, btn) {
 function isLastQuestion() { return game.qNum + 1 >= game.config.total; }
 
 function afterAnswer() {
+  if (game.config.boss && profile.boss.defeated) {       // the boss is beaten: end the battle
+    timers.advance = setTimeout(finishRound, 900);
+    return;
+  }
+  if (game.config.auto) {                                // Boss Battle and Friend Challenge move on by themselves
+    timers.advance = setTimeout(nextQuestion, 900);
+    return;
+  }
   if (game.mode === 'speed') {
     $('roundLabel').textContent = 'Correct: ' + game.score;
     $('progress').style.width = (game.score % 10) * 10 + '%';
@@ -1308,7 +1671,22 @@ function finishRound() {
   $('roundLabel').textContent = 'Round finished';
   $('timerLabel').textContent = '';
   recordExercise();
-  const summary = `🏆 Round complete! You got ${game.score} out of ${total}.` + (star ? ' ⭐ You earned a star!' : '');
+  let summary = `🏆 Round complete! You got ${game.score} out of ${total}.` + (star ? ' ⭐ You earned a star!' : '');
+  if (game.config.boss) {
+    const boss = currentBoss();
+    summary = profile.boss.defeated ? `⚔️ You defeated ${boss.name}! +${BOSS_REWARD} points` : `${boss.face} ${boss.name} has ${profile.boss.hp} HP left. Come back to finish it!`;
+  }
+  if (game.config.daily) {
+    const time = Math.round(game.times.reduce((a, b) => a + b, 0) * 10) / 10;
+    if (!playedChallengeToday()) {
+      profile.challenge = { day: today(), score: game.score, time };
+      profile.challengesPlayed++;
+      saveProfile();
+      summary = `🏁 Your score is saved for today: ${game.score}/10 in ${time.toFixed(1)}s. Send your friend code so friends can compare!`;
+    } else {
+      summary = `🏁 Practice run: ${game.score}/10 in ${time.toFixed(1)}s. Only your first try counts on the board.`;
+    }
+  }
   if (game.config.typed) {
     setKeypadEnabled(false);
     $('question').textContent = game.config.ranked ? '🏆 Ranked round complete!' : '🏆 Check complete!';
@@ -1423,6 +1801,11 @@ function init() {
     target.focus({ preventScroll: true });   // keyboard and screen-reader users land there too
   });
   $('claimEventBtn').addEventListener('click', claimEventReward);
+  document.querySelectorAll('.tabbar .tab').forEach((tab) => tab.addEventListener('click', () => showPage(tab.dataset.page)));
+  $('openChestBtn').addEventListener('click', openChest);
+  $('petBtn').addEventListener('click', petTheFox);
+  $('petNameBtn').addEventListener('click', savePetName);
+  $('petNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') savePetName(); });
   $('makeBackupBtn').addEventListener('click', () => createBackup(false));
   $('shareBackupBtn').addEventListener('click', () => createBackup(true));
   $('restoreBtn').addEventListener('click', restoreBackup);
@@ -1452,10 +1835,7 @@ function init() {
   $('storageWarning').hidden = storage.ok;
   applyStreakFreezes();                  // a missed day? use a freeze if there is one
   storage.write(PROFILE_KEY, profile);   // keeps the new player id
-  renderProfile();
-  renderStats();
-  renderLeaderboard();
-  renderEvent();
+  renderAll();
 
   // Offline support / Home Screen install (only on https or localhost).
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
@@ -1464,6 +1844,7 @@ function init() {
 }
 
 // Exposed for automated tests.
-window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENT_REWARDS };
+window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENT_REWARDS,
+  CHEST_EMOJIS, PET_STAGES, BOSSES, BOSS_HP, dailyQuestions, showPage };
 
 init();

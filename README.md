@@ -65,7 +65,7 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 
 **Daily streak:** the first correct answer each day adds to your day streak and gives a daily bonus (+20 on day 1, rising to +110 from day 10). Miss a day and it starts again.
 
-**Badges:** 19 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
+**Badges:** 23 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
 
 **Celebrations:** confetti and a fox message for perfect rounds, stars, new ranks, badges, streaks and purchases. Confetti is skipped if the device asks for reduced motion.
 
@@ -74,6 +74,16 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 **15-Day Reward Event:** finish 2 exercises (any game, played to the end) in a day to unlock that day’s reward, then tap Claim. Missing a day just pauses the event. Rewards: streak freezes (days 1, 6, 10), points (days 2, 5, 8, 12, 14), mystery event-only emojis (days 3, 7, 11), event-only backgrounds (Super Rare, Epic, Legendary on days 4, 9, 13) and the Ultra Legendary 🐆 Cheetah on day 15. Event items show in the shop but can’t be bought.
 
 **Streak freezes:** each freeze covers one missed day, so the day streak isn’t lost. It is used automatically when you next open the site. If you missed more days than you have freezes, the streak resets and the freezes are kept.
+
+**Tabs:** the site is split into Play, Shop, Friends and Event tabs. A dot on the Event tab means a reward or the chest is waiting. Leaving the Play tab stops any game in progress.
+
+**Weekly Treasure Chest:** practise (get at least one answer right) on 4 different days between Monday and Sunday to unlock one free chest. Prizes: 250–500 points, a streak freeze, or one of six chest-only emojis (never a duplicate). The possible prizes are shown up front, and chests can’t be bought.
+
+**Pet fox:** grows through six stages (Baby → Little → Clever → Super → Royal → Legendary Fox) as correct answers add up. It can be renamed, cheers when tapped, and is never sad.
+
+**Boss Battle:** a new boss every Monday with 300 HP. Each correct answer hits it for 10, or 15 if answered within 3 seconds (critical). Health is saved through the week. Beating it gives +300 points and the Boss Beater badge.
+
+**Friend Challenge of the Day:** the same 10 questions for everyone on the same date. The first try is saved (score, then total time), and later tries are practice. Friend codes carry today’s score, and the Friends tab shows today’s board.
 
 **Try it on:** any shop item can be previewed on your character for 6 seconds before buying.
 

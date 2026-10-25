@@ -1,7 +1,7 @@
 // Tests for daily streaks, badges, celebrations, try-on, backup and the ranked leaderboard.
 import { test, expect } from '@playwright/test';
+import { press, fillIn, reveal } from './helpers.js';
 
-const press = async (locator) => (test.info().project.use.hasTouch ? locator.tap() : locator.click());
 
 async function productAnswer(page) {
   const m = (await page.locator('#question').textContent()).match(/(\d+) × (\d+) = \?/);
@@ -152,16 +152,16 @@ test('backup: make a code, restore it on a fresh device, reject bad codes', asyn
   expect(await points(page)).toBe(0);
 
   // Bad and damaged codes are rejected.
-  await page.locator('#restoreInput').fill('hello');
+  await fillIn(page.locator('#restoreInput'), 'hello');
   await press(page.locator('#restoreBtn'));
   await expect(page.locator('#backupMessage')).toContainText('doesn’t look right');
   const damaged = code.slice(0, 20) + (code[20] === 'A' ? 'B' : 'A') + code.slice(21);
-  await page.locator('#restoreInput').fill(damaged);
+  await fillIn(page.locator('#restoreInput'), damaged);
   await press(page.locator('#restoreBtn'));
   await expect(page.locator('#backupMessage')).toContainText('doesn’t look right');
 
   // Good code: the first tap explains, the second tap restores.
-  await page.locator('#restoreInput').fill(code);
+  await fillIn(page.locator('#restoreInput'), code);
   await press(page.locator('#restoreBtn'));
   await expect(page.locator('#backupMessage')).toContainText('1,234 points');
   expect(await points(page)).toBe(0);
@@ -187,7 +187,7 @@ test('leaderboard: ordered by rank, then average time, then points; shows streak
     { v: 2, id: 'zoe', name: 'Zoe', emoji: '🦄', rank: 'diamond', rankAvg: 3.1, points: 10, streak: 6, streakDay: '2026-03-10' },
   ];
   for (const f of friendsToAdd) {
-    await page.locator('#friendCodeInput').fill(encodeCode(f));
+    await fillIn(page.locator('#friendCodeInput'), encodeCode(f));
     await press(page.locator('#addFriendBtn'));
   }
   const rows = page.locator('.leader-row');
@@ -248,7 +248,7 @@ test('rarities: buying a Legendary gets a special message', async ({ page }) => 
 test('leaderboard: a friend in a time zone ahead still shows a current streak', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-03-10T23:30:00') });
   await page.goto('/');
-  await page.locator('#friendCodeInput').fill(encodeCode({ v: 2, id: 'kim', name: 'Kim', emoji: '🐸', points: 5, streak: 3, streakDay: '2026-03-11' }));
+  await fillIn(page.locator('#friendCodeInput'), encodeCode({ v: 2, id: 'kim', name: 'Kim', emoji: '🐸', points: 5, streak: 3, streakDay: '2026-03-11' }));
   await press(page.locator('#addFriendBtn'));
   const row = page.locator('.leader-row', { hasText: 'Kim' });
   await expect(row).toContainText('🔥 3-day streak');

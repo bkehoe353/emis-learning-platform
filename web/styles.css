@@ -143,3 +143,65 @@ button:active{transform:scale(.97)}
 @keyframes ultra-shift{to{background-position:200% 0}}
 .emoji-item.rarity-ultra{border:3px solid #b48cff;background:linear-gradient(160deg,#fff4fb,#f1f9ff,#fffbe8);animation:legendary-glow 1.8s ease-in-out infinite}
 .emoji-item button.event-locked{background:#fff1c2;color:#7a5200;opacity:1}
+
+/* --- Tabs: Play · Shop · Friends · Event --- */
+.tabbar{position:sticky;top:0;z-index:30;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:8px 5vw;background:#ffffffe6;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px #5545a014}
+.tabbar .tab{position:relative;flex:1;max-width:190px;min-height:52px;background:#f1edff;color:#5b43ba;border-radius:16px;font-size:1.05rem}
+.tabbar .tab[aria-selected="true"]{background:var(--purple);color:#fff;box-shadow:0 4px 0 #5b43ba}
+.tab-dot{position:absolute;top:6px;right:10px;width:12px;height:12px;border-radius:50%;background:#ff4f8b;box-shadow:0 0 0 2px #fff}
+.page{padding-top:8px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* --- Pet fox --- */
+.pet-section{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:linear-gradient(135deg,#fff,#fff4e7)}
+.pet{position:relative;width:150px;height:150px;flex:none;border-radius:50%;background:radial-gradient(circle at 50% 60%,#fff3d6,#ffe0b8);border:4px solid #fff;box-shadow:0 0 0 3px #ffd3a1;display:grid;place-items:center;padding:0}
+.pet-body{line-height:1;transition:font-size .4s}
+.pet-accessory{position:absolute;top:8px;right:18px;font-size:2rem}
+.pet.legendary{box-shadow:0 0 0 3px #ffc93c,0 0 26px #ffc93c;animation:legendary-glow 2s ease-in-out infinite}
+.pet.happy .pet-body{animation:pet-hop .6s ease-out}
+@keyframes pet-hop{30%{transform:translateY(-18px) rotate(-6deg)}60%{transform:translateY(0) rotate(4deg)}}
+.pet-info{flex:1;min-width:220px}
+.pet-info h2{margin:0 0 4px}
+.pet-info p{margin:0 0 8px;font-weight:800;color:#5b43ba}
+.pet-info small{display:block;margin-top:6px;color:#68758b}
+.pet-info .profile-name input{min-width:140px}
+
+/* --- New game cards --- */
+.game-card:nth-child(10) button{background:#c0392b}
+.game-card:nth-child(11) button{background:#0a8f8f}
+.game-card button:disabled{opacity:.6;cursor:default}
+
+/* --- Boss Battle --- */
+.boss-panel{position:relative;display:flex;align-items:center;gap:14px;margin:14px 0;padding:12px 16px;border-radius:18px;background:linear-gradient(135deg,#2b1d4a,#4a1c50);color:#fff}
+.boss-face{font-size:3.4rem;line-height:1}
+.boss-face.hurt{animation:boss-hurt .4s}
+@keyframes boss-hurt{25%{transform:translateX(-8px) rotate(-8deg)}75%{transform:translateX(8px) rotate(8deg)}}
+.boss-info{flex:1}
+.boss-info strong{display:block;font-size:1.15rem}
+.hp-wrap{height:16px;border-radius:10px;background:#ffffff33;overflow:hidden;margin:6px 0 4px}
+.hp{height:100%;background:linear-gradient(90deg,#ff4f6d,#ffb347);transition:width .3s}
+.boss-hit{position:absolute;right:16px;top:-6px;font-weight:1000;font-size:1.3rem;color:#ffd65a;opacity:0}
+.boss-hit.show{animation:boss-hit-pop 1s ease-out}
+@keyframes boss-hit-pop{0%{opacity:1;transform:translateY(10px) scale(.8)}30%{opacity:1;transform:translateY(-6px) scale(1.15)}100%{opacity:0;transform:translateY(-24px)}}
+
+/* --- Weekly Treasure Chest --- */
+.chest-section{background:linear-gradient(135deg,#fff,#eefaff)}
+.chest-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.chest{font-size:4.2rem;line-height:1;filter:grayscale(.4);opacity:.75}
+.chest.ready{filter:none;opacity:1;animation:legendary-glow 1.6s ease-in-out infinite;border-radius:20px}
+.chest.opening{animation:chest-shake .3s linear 3}
+@keyframes chest-shake{25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+.chest-info{flex:1;min-width:220px}
+.chest-info p{margin:0 0 8px;font-weight:800}
+.chest-days{display:flex;gap:6px;margin-bottom:8px}
+.chest-day{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:900;background:#eef1f6;color:#8c95a8}
+.chest-day.done{background:#45c69c;color:#fff}
+.chest-day.today{box-shadow:0 0 0 3px #7357d9}
+.chest-open{animation:claim-bounce 1.2s ease-in-out infinite}
+.storage-warning{background:#fff1c2;border:2px solid #e8b93c;border-radius:14px;padding:10px 14px;font-weight:800;margin:10px 0 0}
+
+/* --- Compact welcome banner so the games are nearer the top --- */
+.hero{padding:clamp(18px,3vw,30px) clamp(20px,4vw,40px)}
+.hero h1{font-size:clamp(1.9rem,4.2vw,3rem);margin:8px 0 10px}
+.hero p{margin:0 0 14px}
+.hero-art{font-size:clamp(3rem,7vw,4.6rem)}

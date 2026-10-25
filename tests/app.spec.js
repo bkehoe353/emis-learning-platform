@@ -1,10 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { press, fillIn, reveal } from './helpers.js';
 
-// Tap on the iPad project, click on desktop.
-const press = async (locator) => {
-  const touch = test.info().project.use.hasTouch;
-  return touch ? locator.tap() : locator.click();
-};
 
 // Works out the right answer for "a × b = ?" questions.
 async function productAnswer(page) {
@@ -43,8 +39,9 @@ test.afterEach(() => { expect(errors, 'JavaScript errors on the page').toEqual([
 test('every game button opens its game', async ({ page }) => {
   await page.goto('/');
   const buttons = page.locator('.games [data-game]');
-  await expect(buttons).toHaveCount(9);
-  for (let i = 0; i < 9; i++) {
+  const count = await page.evaluate(() => Object.keys(window.EmiApp.GAMES).length);
+  await expect(buttons).toHaveCount(count);   // one card per game
+  for (let i = 0; i < count; i++) {
     await press(buttons.nth(i));
     await expect(page.locator('#playArea')).toHaveClass(/active/);
     await expect(page.locator('#question')).not.toHaveText('');
@@ -183,7 +180,7 @@ test('Table Trainer uses the chosen table and changing it restarts the round', a
 test('progress is saved and restored after reload', async ({ page }) => {
   await page.goto('/');
   await settle(page);
-  await page.locator('#profileName').fill('Emi');
+  await fillIn(page.locator('#profileName'), 'Emi');
   await press(page.locator('#saveNameBtn'));
   await press(page.getByRole('button', { name: 'Play Quick Quiz →' }));
   await press(page.locator(`#answers .answer[data-value="${await productAnswer(page)}"]`));
@@ -273,23 +270,23 @@ test('friend codes: add, update without duplicates, sort, remove, reject bad cod
   // Own code is rejected.
   await press(page.locator('#makeFriendCode'));
   const mine = await page.locator('#myFriendCode').inputValue();
-  await page.locator('#friendCodeInput').fill(mine);
+  await fillIn(page.locator('#friendCodeInput'), mine);
   await press(page.locator('#addFriendBtn'));
   await expect(page.locator('#friendMessage')).toContainText('your own code');
 
   // Bad code is rejected.
-  await page.locator('#friendCodeInput').fill('not a code');
+  await fillIn(page.locator('#friendCodeInput'), 'not a code');
   await press(page.locator('#addFriendBtn'));
   await expect(page.locator('#friendMessage')).toContainText('does not look right');
 
   // Add a friend, then update their score with a newer code.
-  await page.locator('#friendCodeInput').fill(code({ v: 2, id: 'friend-1', name: 'Zoe', emoji: '🦄', points: 300 }));
+  await fillIn(page.locator('#friendCodeInput'), code({ v: 2, id: 'friend-1', name: 'Zoe', emoji: '🦄', points: 300 }));
   await press(page.locator('#addFriendBtn'));
-  await page.locator('#friendCodeInput').fill(code({ v: 2, id: 'friend-1', name: 'Zoe', emoji: '🐼', points: 900 }));
+  await fillIn(page.locator('#friendCodeInput'), code({ v: 2, id: 'friend-1', name: 'Zoe', emoji: '🐼', points: 900 }));
   await press(page.locator('#addFriendBtn'));
   await expect(page.locator('#friendMessage')).toContainText('updated');
   // Old-style (v1) codes still work.
-  await page.locator('#friendCodeInput').fill(code({ v: 1, name: 'Sam', emoji: '🐶', points: 50 }));
+  await fillIn(page.locator('#friendCodeInput'), code({ v: 1, name: 'Sam', emoji: '🐶', points: 50 }));
   await press(page.locator('#addFriendBtn'));
 
   const rows = page.locator('.leader-row');
@@ -318,6 +315,7 @@ test('still works when browser storage is blocked', async ({ page }) => {
 
 test('shop tabs switch between emojis and backgrounds', async ({ page }) => {
   await page.goto('/');
+  await press(page.locator('#tab-shop'));
   await expect(page.locator('#emojiPanel')).toBeVisible();
   await expect(page.locator('#bgPanel')).toBeHidden();
   await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
@@ -440,9 +438,9 @@ test('Ranked: medal images load', async ({ request }) => {
 test('Ranked: friend codes carry rank; unknown ranks are ignored', async ({ page }) => {
   await page.goto('/');
   const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64');
-  await page.locator('#friendCodeInput').fill(enc({ v: 2, id: 'f-1', name: 'Zoe', emoji: '🦄', rank: 'diamond', points: 900 }));
+  await fillIn(page.locator('#friendCodeInput'), enc({ v: 2, id: 'f-1', name: 'Zoe', emoji: '🦄', rank: 'diamond', points: 900 }));
   await press(page.locator('#addFriendBtn'));
-  await page.locator('#friendCodeInput').fill(enc({ v: 2, id: 'f-2', name: 'Sam', emoji: '🐶', rank: 'platinum', points: 50 }));
+  await fillIn(page.locator('#friendCodeInput'), enc({ v: 2, id: 'f-2', name: 'Sam', emoji: '🐶', rank: 'platinum', points: 50 }));
   await press(page.locator('#addFriendBtn'));
   await expect(page.locator('.leader-row', { hasText: 'Zoe' })).toContainText('Diamond rank');
   await expect(page.locator('.leader-row', { hasText: 'Zoe' }).locator('.score img[alt="Diamond rank"]')).toBeVisible();
@@ -496,7 +494,7 @@ test('tricky facts: asked about 3 in 10 times, never twice in a row, not in Rank
 
 test('shops show 12 items until See more is tapped', async ({ page }) => {
   await page.goto('/');
-  const emojiCount = await page.evaluate(() => window.EmiApp.EMOJI_CATALOG.length + window.EmiApp.EVENT_EMOJIS.length + 1);   // + event-only + free Happy Face
+  const emojiCount = await page.evaluate(() => window.EmiApp.EMOJI_CATALOG.length + window.EmiApp.EVENT_EMOJIS.length + window.EmiApp.CHEST_EMOJIS.length + 1);   // + event/chest-only + free Happy Face
   await expect(page.locator('#shopGrid .emoji-item')).toHaveCount(12);
   await expect(page.locator('#emojiMore')).toHaveText(`See more (${emojiCount - 12} more) ▼`);
   await press(page.locator('#emojiMore'));

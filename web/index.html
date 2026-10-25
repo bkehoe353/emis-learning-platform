@@ -21,10 +21,18 @@
   <div class="brand"><div class="logo">🦊</div><span>Emi’s Learning Platform</span></div>
   <button type="button" class="sound-btn" id="soundToggle" aria-pressed="true">🔊 Sound on</button>
 </header>
+<nav class="tabbar" role="tablist" aria-label="Sections">
+  <button type="button" class="tab" role="tab" id="tab-play" data-page="play" aria-controls="page-play" aria-selected="true">🎮 Play</button>
+  <button type="button" class="tab" role="tab" id="tab-shop" data-page="shop" aria-controls="page-shop" aria-selected="false" tabindex="-1">🛍️ Shop</button>
+  <button type="button" class="tab" role="tab" id="tab-friends" data-page="friends" aria-controls="page-friends" aria-selected="false" tabindex="-1">👫 Friends</button>
+  <button type="button" class="tab" role="tab" id="tab-event" data-page="event" aria-controls="page-event" aria-selected="false" tabindex="-1">🎁 Event<span class="tab-dot" id="eventDot" hidden aria-label="(reward waiting)"></span></button>
+</nav>
 <noscript>
   <div class="noscript-warning">⚠️ The games can’t run in this preview. Open this page in Safari or Chrome (or use the website link) to play.</div>
 </noscript>
 <main>
+  <p class="storage-warning" id="storageWarning" hidden>⚠️ This browser isn’t letting the game save. Your points will reset when you close the page. Try opening the site in Safari (not a private window).</p>
+<div class="page" id="page-play" role="tabpanel" aria-labelledby="tab-play">
   <section class="hero">
     <div>
       <span class="tag">⭐ YEAR 4 MATHS ADVENTURE</span>
@@ -42,69 +50,18 @@
     <div class="stat"><span class="emoji">🔥</span><div><strong id="streak">0</strong><small>Best streak</small></div></div>
   </section>
 
-  <section class="profile-shop event-section" id="eventSection" aria-label="15-Day Reward Event">
-    <div class="section-title" style="margin-top:0"><div><h2>🎁 15-Day Reward Event</h2><p>Finish 2 exercises a day to unlock a reward. Day 15 is the <strong>Ultra Legendary 🐆 Cheetah</strong>!</p></div></div>
-    <div class="event-today">
-      <span class="event-pips" id="eventPips" aria-hidden="true"></span>
-      <p id="eventStatus" role="status"></p>
-      <button type="button" class="primary event-claim" id="claimEventBtn" hidden></button>
+  <section class="profile-shop pet-section" id="petSection" aria-label="Your pet fox">
+    <button type="button" class="pet" id="petBtn" aria-label="Pet your fox"><span class="pet-body" id="petBody">🦊</span><span class="pet-accessory" id="petAccessory"></span></button>
+    <div class="pet-info">
+      <h2 id="petTitle">Foxy</h2>
+      <p id="petMood"></p>
+      <div class="progress-wrap"><div class="progress" id="petProgress"></div></div>
+      <small id="petNext"></small>
+      <div class="profile-name"><label for="petNameInput" class="sr-only">Pet name</label><input id="petNameInput" maxlength="16" placeholder="Name your fox" autocomplete="off"><button type="button" class="sound-btn" id="petNameBtn">Save pet name</button></div>
     </div>
-    <p class="shop-note" id="eventFreezes"></p>
-    <div class="event-track" id="eventTrack"></div>
   </section>
 
-  <section class="profile-shop" aria-label="Character profile and emoji shop">
-    <div class="profile-head">
-      <div class="avatar" id="profileAvatar">😀</div>
-      <div class="profile-meta"><h2 id="profileTitle">Your Character</h2><div class="rank-badge" id="profileRank"></div><p class="try-note" id="tryOnNote" hidden>👀 Trying on — buy it to keep it!</p><p>Choose a name and collect emojis as you learn.</p></div>
-      <div class="profile-points">🪙 <span id="points">0</span> points</div>
-    </div>
-    <div class="profile-name">
-      <label for="profileName" style="font-weight:800;align-self:center">Character name:</label>
-      <input id="profileName" maxlength="20" placeholder="Type a nickname" autocomplete="off">
-      <button type="button" class="primary" id="saveNameBtn">Save name</button>
-    </div>
-    <p class="shop-note">Use a nickname, not your full real name.</p>
-    <div class="section-title" style="margin-top:24px"><div><h2>🛍️ Shop &amp; Badges</h2><p>Earn 10 points for every correct answer in any game, then save up for rare emojis and backgrounds! Tap “Try on” to see how something looks first.</p></div></div>
-    <div class="shop-tabs" role="tablist" aria-label="Shops">
-      <button type="button" class="shop-tab" role="tab" id="emojiTab" data-shop="emoji" aria-controls="emojiPanel" aria-selected="true">🛍️ Emojis</button>
-      <button type="button" class="shop-tab" role="tab" id="bgTab" data-shop="bg" aria-controls="bgPanel" aria-selected="false" tabindex="-1">🎨 Backgrounds</button>
-      <button type="button" class="shop-tab" role="tab" id="badgeTab" data-shop="badges" aria-controls="badgePanel" aria-selected="false" tabindex="-1">🏅 Badges</button>
-    </div>
-    <div class="rarity-key" aria-label="Rarities from most common to rarest"><span class="rarity-chip common">Common</span><span class="rarity-chip rare">Rare</span><span class="rarity-chip super">Super Rare</span><span class="rarity-chip epic">Epic</span><span class="rarity-chip legendary">Legendary</span></div>
-    <div id="emojiPanel" role="tabpanel" aria-labelledby="emojiTab"><div class="shop-grid" id="shopGrid"></div><button type="button" class="see-more" id="emojiMore" aria-controls="shopGrid"></button></div>
-    <div id="bgPanel" role="tabpanel" aria-labelledby="bgTab" hidden><div class="shop-grid" id="bgGrid"></div><button type="button" class="see-more" id="bgMore" aria-controls="bgGrid"></button></div>
-    <div id="badgePanel" role="tabpanel" aria-labelledby="badgeTab" hidden><p class="shop-note" id="badgeCount"></p><div class="badge-grid" id="badgeGrid"></div></div>
-    <p class="shop-note">Your happy face 😀 and the Sunny background are free. Rare items cost up to 18,000 points! Your points, name and unlocked emojis are saved on this device, in this browser. <strong>Tip:</strong> add this site to your Home Screen so your progress stays safe.</p>
-    <p class="shop-note" id="storageWarning" hidden>⚠️ This browser isn’t letting the game save. Your points will reset when you close the page.</p>
-  </section>
-
-  <section class="profile-shop" id="friendsSection" aria-label="Friends and leaderboard">
-    <div class="section-title" style="margin-top:0"><div><h2>👫 Friends &amp; Leaderboard</h2><p>Add friends with a share code and compare points.</p></div></div>
-    <p class="shop-note"><strong>How it works:</strong> Make your code and send it to a friend. They send you their code to add them. A code holds only your nickname, emoji and points. Friends’ scores don’t update by themselves — ask them for a fresh code to see their new points.</p>
-    <div class="profile-name"><button type="button" class="primary" id="makeFriendCode">🔗 Make my friend code</button><button type="button" class="sound-btn" id="shareFriendCode">📤 Share my code</button></div>
-    <label for="myFriendCode" style="display:block;font-weight:800;margin-top:12px">Your friend code (copy and send this):</label>
-    <textarea id="myFriendCode" rows="3" readonly style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Tap ‘Make my friend code’"></textarea>
-    <label for="friendCodeInput" style="display:block;font-weight:800;margin-top:14px">Add a friend by pasting their code:</label>
-    <textarea id="friendCodeInput" rows="3" style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Paste your friend's code here"></textarea>
-    <div class="profile-name"><button type="button" class="primary" id="addFriendBtn">➕ Add friend</button></div>
-    <div id="friendMessage" role="status" style="margin-top:10px;font-weight:800"></div>
-    <div id="leaderboard" style="margin-top:16px"></div>
-  </section>
-
-  <section class="profile-shop" id="backupSection" aria-label="Back up your progress">
-    <div class="section-title" style="margin-top:0"><div><h2>💾 Back up your progress</h2><p>Keep a backup code so you never lose your points, emojis, badges and friends.</p></div></div>
-    <p class="shop-note">Make a backup code and ask a grown-up to keep it safe (for example, email it to them). If this device loses your progress, or you get a new one, paste the code below to get everything back.</p>
-    <div class="profile-name"><button type="button" class="primary" id="makeBackupBtn">💾 Make backup code</button><button type="button" class="sound-btn" id="shareBackupBtn">📤 Share / copy code</button></div>
-    <label for="backupCode" style="display:block;font-weight:800;margin-top:12px">Your backup code:</label>
-    <textarea id="backupCode" rows="3" readonly style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Tap ‘Make backup code’"></textarea>
-    <label for="restoreInput" style="display:block;font-weight:800;margin-top:14px">Restore from a backup code:</label>
-    <textarea id="restoreInput" rows="3" style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Paste a backup code starting with EMI1-"></textarea>
-    <div class="profile-name"><button type="button" class="sound-btn" id="restoreBtn">♻️ Restore progress</button></div>
-    <div id="backupMessage" role="status" style="margin-top:10px;font-weight:800"></div>
-  </section>
-
-  <div class="section-title" id="challenges" tabindex="-1"><div><h2>Choose your challenge</h2><p>Nine fun ways to practise your tables.</p></div></div>
+  <div class="section-title" id="challenges" tabindex="-1"><div><h2>Choose your challenge</h2><p>Eleven fun ways to practise your tables.</p></div></div>
   <section class="games">
     <article class="game-card"><div class="big">🎯</div><h3>Quick Quiz</h3><p>10 questions, with 60 seconds for each one. Build a brilliant score!</p><button type="button" data-game="mix">Play Quick Quiz →</button></article>
     <article class="game-card"><div class="big">🧠</div><h3>Table Trainer</h3><p>Choose a table from 2 to 12 and practise until it sticks.</p><button type="button" data-game="table">Train a table →</button></article>
@@ -115,6 +72,8 @@
     <article class="game-card"><div class="big">📚</div><h3>Word Problems</h3><p>Use multiplication to solve little real-life maths puzzles.</p><button type="button" data-game="word">Crack the problem →</button></article>
     <article class="game-card"><div class="big">⏱️</div><h3>Times Tables Check</h3><p>Practise for the real Year 4 check: 25 questions, 6 seconds each. Type your answers!</p><button type="button" data-game="mtc">Take the check →</button></article>
     <article class="game-card"><div class="big"><img src="ranks/amethyst.svg" alt="" width="52" height="62"></div><h3>Ranked</h3><p>15 questions. The faster you answer, the higher your rank: Bronze, Silver, Gold, Diamond or Amethyst!</p><button type="button" data-game="ranked">Play Ranked →</button></article>
+    <article class="game-card boss-card"><div class="big" id="bossCardIcon">👾</div><h3>Boss Battle</h3><p id="bossCardText">A new boss every Monday! Every right answer hits it. Fast answers are CRITICAL hits!</p><button type="button" data-game="boss" id="bossPlayBtn">Fight the boss →</button></article>
+    <article class="game-card"><div class="big">🏁</div><h3>Friend Challenge</h3><p id="dailyCardText">Today’s 10 questions are the same for everyone. Only your first try counts!</p><button type="button" data-game="daily" id="dailyPlayBtn">Take today’s challenge →</button></article>
   </section>
 
   <section class="play-area" id="playArea" aria-live="polite">
@@ -124,6 +83,11 @@
       <select id="tableSelect">
         <option value="2">2 times table</option><option value="3">3 times table</option><option value="4">4 times table</option><option value="5">5 times table</option><option value="6">6 times table</option><option value="7">7 times table</option><option value="8">8 times table</option><option value="9">9 times table</option><option value="10">10 times table</option><option value="11">11 times table</option><option value="12">12 times table</option>
       </select>
+    </div>
+    <div class="boss-panel" id="bossPanel" hidden>
+      <span class="boss-face" id="bossFace">👾</span>
+      <div class="boss-info"><strong id="bossName"></strong><div class="hp-wrap"><div class="hp" id="bossHp"></div></div><small id="bossHpText"></small></div>
+      <span class="boss-hit" id="bossHit" aria-live="polite"></span>
     </div>
     <div class="play-head"><span id="roundLabel">Question 1 of 10</span><strong id="timerLabel"></strong></div>
     <div class="progress-wrap"><div class="progress" id="progress"></div></div>
@@ -150,6 +114,92 @@
   <section style="margin-top:28px;background:#fff;border-radius:22px;padding:22px;display:flex;gap:16px;align-items:center">
     <div style="font-size:2.8rem">💡</div><div><h3 style="margin:0 0 5px">A little tip</h3><p style="margin:0;color:#657188;line-height:1.5">If you get stuck, try skip-counting. For 4 × 6, count 4, 8, 12, 16, 20, 24. Practise makes progress!</p></div>
   </section>
+</div>
+
+<div class="page" id="page-shop" role="tabpanel" aria-labelledby="tab-shop" hidden>
+  <section class="profile-shop" aria-label="Character profile and emoji shop">
+    <div class="profile-head">
+      <div class="avatar" id="profileAvatar">😀</div>
+      <div class="profile-meta"><h2 id="profileTitle">Your Character</h2><div class="rank-badge" id="profileRank"></div><p class="try-note" id="tryOnNote" hidden>👀 Trying on — buy it to keep it!</p><p>Choose a name and collect emojis as you learn.</p></div>
+      <div class="profile-points">🪙 <span id="points">0</span> points</div>
+    </div>
+    <div class="profile-name">
+      <label for="profileName" style="font-weight:800;align-self:center">Character name:</label>
+      <input id="profileName" maxlength="20" placeholder="Type a nickname" autocomplete="off">
+      <button type="button" class="primary" id="saveNameBtn">Save name</button>
+    </div>
+    <p class="shop-note">Use a nickname, not your full real name.</p>
+    <div class="section-title" style="margin-top:24px"><div><h2>🛍️ Shop &amp; Badges</h2><p>Earn 10 points for every correct answer in any game, then save up for rare emojis and backgrounds! Tap “Try on” to see how something looks first.</p></div></div>
+    <div class="shop-tabs" role="tablist" aria-label="Shops">
+      <button type="button" class="shop-tab" role="tab" id="emojiTab" data-shop="emoji" aria-controls="emojiPanel" aria-selected="true">🛍️ Emojis</button>
+      <button type="button" class="shop-tab" role="tab" id="bgTab" data-shop="bg" aria-controls="bgPanel" aria-selected="false" tabindex="-1">🎨 Backgrounds</button>
+      <button type="button" class="shop-tab" role="tab" id="badgeTab" data-shop="badges" aria-controls="badgePanel" aria-selected="false" tabindex="-1">🏅 Badges</button>
+    </div>
+    <div class="rarity-key" aria-label="Rarities from most common to rarest"><span class="rarity-chip common">Common</span><span class="rarity-chip rare">Rare</span><span class="rarity-chip super">Super Rare</span><span class="rarity-chip epic">Epic</span><span class="rarity-chip legendary">Legendary</span></div>
+    <div id="emojiPanel" role="tabpanel" aria-labelledby="emojiTab"><div class="shop-grid" id="shopGrid"></div><button type="button" class="see-more" id="emojiMore" aria-controls="shopGrid"></button></div>
+    <div id="bgPanel" role="tabpanel" aria-labelledby="bgTab" hidden><div class="shop-grid" id="bgGrid"></div><button type="button" class="see-more" id="bgMore" aria-controls="bgGrid"></button></div>
+    <div id="badgePanel" role="tabpanel" aria-labelledby="badgeTab" hidden><p class="shop-note" id="badgeCount"></p><div class="badge-grid" id="badgeGrid"></div></div>
+    <p class="shop-note">Your happy face 😀 and the Sunny background are free. Rare items cost up to 18,000 points! Your points, name and unlocked emojis are saved on this device, in this browser. <strong>Tip:</strong> add this site to your Home Screen so your progress stays safe.</p>
+  </section>
+</div>
+
+<div class="page" id="page-friends" role="tabpanel" aria-labelledby="tab-friends" hidden>
+  <section class="profile-shop" id="friendsSection" aria-label="Friends and leaderboard">
+    <div class="section-title" style="margin-top:0"><div><h2>👫 Friends &amp; Leaderboard</h2><p>Add friends with a share code and compare points.</p></div></div>
+    <p class="shop-note"><strong>How it works:</strong> Make your code and send it to a friend. They send you their code to add them. A code holds only your nickname, emoji and points. Friends’ scores don’t update by themselves — ask them for a fresh code to see their new points.</p>
+    <div class="profile-name"><button type="button" class="primary" id="makeFriendCode">🔗 Make my friend code</button><button type="button" class="sound-btn" id="shareFriendCode">📤 Share my code</button></div>
+    <label for="myFriendCode" style="display:block;font-weight:800;margin-top:12px">Your friend code (copy and send this):</label>
+    <textarea id="myFriendCode" rows="3" readonly style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Tap ‘Make my friend code’"></textarea>
+    <label for="friendCodeInput" style="display:block;font-weight:800;margin-top:14px">Add a friend by pasting their code:</label>
+    <textarea id="friendCodeInput" rows="3" style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Paste your friend's code here"></textarea>
+    <div class="profile-name"><button type="button" class="primary" id="addFriendBtn">➕ Add friend</button></div>
+    <div id="friendMessage" role="status" style="margin-top:10px;font-weight:800"></div>
+    <div id="leaderboard" style="margin-top:16px"></div>
+  </section>
+
+  <section class="profile-shop" id="challengeSection" aria-label="Today’s Friend Challenge">
+    <div class="section-title" style="margin-top:0"><div><h2>🏁 Today’s Friend Challenge</h2><p>Everyone gets the same 10 questions today, and only the first try counts. Play it, then send your friend code so friends can see your score!</p></div></div>
+    <div id="challengeBoard"></div>
+  </section>
+
+  <section class="profile-shop" id="backupSection" aria-label="Back up your progress">
+    <div class="section-title" style="margin-top:0"><div><h2>💾 Back up your progress</h2><p>Keep a backup code so you never lose your points, emojis, badges and friends.</p></div></div>
+    <p class="shop-note">Make a backup code and ask a grown-up to keep it safe (for example, email it to them). If this device loses your progress, or you get a new one, paste the code below to get everything back.</p>
+    <div class="profile-name"><button type="button" class="primary" id="makeBackupBtn">💾 Make backup code</button><button type="button" class="sound-btn" id="shareBackupBtn">📤 Share / copy code</button></div>
+    <label for="backupCode" style="display:block;font-weight:800;margin-top:12px">Your backup code:</label>
+    <textarea id="backupCode" rows="3" readonly style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Tap ‘Make backup code’"></textarea>
+    <label for="restoreInput" style="display:block;font-weight:800;margin-top:14px">Restore from a backup code:</label>
+    <textarea id="restoreInput" rows="3" style="width:100%;padding:12px;border:2px solid #dedcf0;border-radius:12px;margin-top:6px" placeholder="Paste a backup code starting with EMI1-"></textarea>
+    <div class="profile-name"><button type="button" class="sound-btn" id="restoreBtn">♻️ Restore progress</button></div>
+    <div id="backupMessage" role="status" style="margin-top:10px;font-weight:800"></div>
+  </section>
+</div>
+
+<div class="page" id="page-event" role="tabpanel" aria-labelledby="tab-event" hidden>
+  <section class="profile-shop event-section" id="eventSection" aria-label="15-Day Reward Event">
+    <div class="section-title" style="margin-top:0"><div><h2>🎁 15-Day Reward Event</h2><p>Finish 2 exercises a day to unlock a reward. Day 15 is the <strong>Ultra Legendary 🐆 Cheetah</strong>!</p></div></div>
+    <div class="event-today">
+      <span class="event-pips" id="eventPips" aria-hidden="true"></span>
+      <p id="eventStatus" role="status"></p>
+      <button type="button" class="primary event-claim" id="claimEventBtn" hidden></button>
+    </div>
+    <p class="shop-note" id="eventFreezes"></p>
+    <div class="event-track" id="eventTrack"></div>
+  </section>
+
+  <section class="profile-shop chest-section" id="chestSection" aria-label="Weekly Treasure Chest">
+    <div class="section-title" style="margin-top:0"><div><h2>🧰 Weekly Treasure Chest</h2><p>Practise on 4 different days this week (Monday to Sunday) to open the chest. Every prize is a good one, and you never get the same emoji twice!</p></div></div>
+    <div class="chest-row">
+      <span class="chest" id="chestIcon" aria-hidden="true">🧰</span>
+      <div class="chest-info">
+        <p id="chestStatus" role="status"></p>
+        <div class="chest-days" id="chestDays" aria-hidden="true"></div>
+        <button type="button" class="primary chest-open" id="openChestBtn" hidden>🧰 Open the chest!</button>
+      </div>
+    </div>
+    <p class="shop-note" id="chestPrizes"></p>
+  </section>
+</div>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="confetti-layer" id="confetti" aria-hidden="true"></div>

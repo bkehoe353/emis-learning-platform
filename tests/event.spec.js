@@ -1,7 +1,7 @@
 // Tests for the 15-Day Reward Event and streak freezes.
 import { test, expect } from '@playwright/test';
+import { press, fillIn, reveal } from './helpers.js';
 
-const press = async (locator) => (test.info().project.use.hasTouch ? locator.tap() : locator.click());
 const points = async (page) => Number((await page.locator('#points').textContent()).replace(/,/g, ''));
 const profileOf = (page) => page.evaluate(() => window.EmiApp.getProfile());
 
