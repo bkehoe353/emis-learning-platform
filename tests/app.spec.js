@@ -496,7 +496,7 @@ test('tricky facts: asked about 3 in 10 times, never twice in a row, not in Rank
 
 test('shops show 12 items until See more is tapped', async ({ page }) => {
   await page.goto('/');
-  const emojiCount = await page.evaluate(() => window.EmiApp.EMOJI_CATALOG.length + 1);   // + free Happy Face
+  const emojiCount = await page.evaluate(() => window.EmiApp.EMOJI_CATALOG.length + window.EmiApp.EVENT_EMOJIS.length + 1);   // + event-only + free Happy Face
   await expect(page.locator('#shopGrid .emoji-item')).toHaveCount(12);
   await expect(page.locator('#emojiMore')).toHaveText(`See more (${emojiCount - 12} more) ▼`);
   await press(page.locator('#emojiMore'));
@@ -509,5 +509,5 @@ test('shops show 12 items until See more is tapped', async ({ page }) => {
   await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
   await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(12);
   await press(page.locator('#bgMore'));
-  await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(22);
+  await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(await page.evaluate(() => window.EmiApp.BACKGROUND_CATALOG.length + window.EmiApp.EVENT_BACKGROUNDS.length));
 });

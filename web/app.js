@@ -150,7 +150,48 @@ const RARITIES = [
   { id: 'legendary', name: 'Legendary',  minPrice: 16000 },
 ];
 const rarityFor = (price) => [...RARITIES].reverse().find((r) => price >= r.minPrice);
-const BACKGROUNDS_BY_ID = Object.fromEntries(BACKGROUND_CATALOG.map((b) => [b.id, b]));
+// Ultra Legendary is above every shop tier: it can only be won (the Day 15 Cheetah).
+const ULTRA = { id: 'ultra', name: 'Ultra Legendary', minPrice: Infinity };
+const RARITIES_BY_ID = Object.fromEntries([...RARITIES, ULTRA].map((r) => [r.id, r]));
+// Event items have a fixed rarity; shop items get theirs from the price.
+const rarityOf = (item) => (item.rarity ? RARITIES_BY_ID[item.rarity] : rarityFor(item.price));
+
+/* ---------- 15-Day Reward Event ---------- */
+// Event-only items: never sold in the shop.
+const EVENT_EMOJIS = [
+  { emoji: '🦉', name: 'Owl', rarity: 'epic' }, { emoji: '🦦', name: 'Otter', rarity: 'epic' },
+  { emoji: '🐨', name: 'Koala', rarity: 'epic' }, { emoji: '🦔', name: 'Hedgehog', rarity: 'epic' },
+  { emoji: '🐧', name: 'Penguin', rarity: 'epic' }, { emoji: '🦝', name: 'Raccoon', rarity: 'epic' },
+  { emoji: '🦜', name: 'Parrot', rarity: 'epic' }, { emoji: '🐝', name: 'Bee', rarity: 'epic' },
+  { emoji: '🐆', name: 'Cheetah', rarity: 'ultra' },
+].map((e) => ({ ...e, price: 0, event: true }));
+const MYSTERY_POOL = EVENT_EMOJIS.filter((e) => e.rarity !== 'ultra').map((e) => e.emoji);
+const EVENT_BACKGROUNDS = [
+  { id: 'savanna', name: 'Savanna', rarity: 'super', css: 'radial-gradient(circle at 75% 25%,#fff3b0 0 9%,transparent 10%),linear-gradient(180deg,#ffd27a,#f4a640 60%,#9c6b2f)' },
+  { id: 'goldenhour', name: 'Golden Hour', rarity: 'epic', css: 'radial-gradient(circle at 50% 85%,#fff2a8 0 16%,transparent 17%),linear-gradient(180deg,#ff8a8a,#ffb36b 55%,#ffe39a)' },
+  { id: 'rainbowgalaxy', name: 'Rainbow Galaxy', rarity: 'legendary', css: STARS + ',conic-gradient(from 90deg at 50% 50%,#ff83b599,#ffd65a99,#8de4cb99,#8bd5ff99,#b48cff99,#ff83b599),linear-gradient(135deg,#0b0b2e,#3a1c71)' },
+].map((b) => ({ ...b, price: 0, event: true }));
+const BACKGROUNDS_BY_ID = Object.fromEntries([...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS].map((b) => [b.id, b]));
+
+const EVENT_DAYS = 15;
+const EXERCISES_PER_DAY = 2;
+const EVENT_REWARDS = [
+  { type: 'freeze', amount: 1 },
+  { type: 'points', amount: 100 },
+  { type: 'mystery' },
+  { type: 'background', id: 'savanna' },
+  { type: 'points', amount: 200 },
+  { type: 'freeze', amount: 1 },
+  { type: 'mystery' },
+  { type: 'points', amount: 300 },
+  { type: 'background', id: 'goldenhour' },
+  { type: 'freeze', amount: 2 },
+  { type: 'mystery' },
+  { type: 'points', amount: 500 },
+  { type: 'background', id: 'rainbowgalaxy' },
+  { type: 'points', amount: 1000 },
+  { type: 'emoji', emoji: '🐆' },
+];
 
 /* ---------- Helpers ---------- */
 
@@ -215,8 +256,30 @@ function sanitizeProfile(saved) {
     trickyCleared: num(saved.trickyCleared),
     badges: Object.fromEntries(Object.entries(saved.badges && typeof saved.badges === 'object' ? saved.badges : {})
       .filter(([id, day]) => BADGES_BY_ID[id] && typeof day === 'string').map(([id, day]) => [id, day.slice(0, 10)])),
+    streakFreezes: Math.min(99, num(saved.streakFreezes)),
+    event: sanitizeEvent(saved.event),
   };
   return profile;
+}
+
+// Event progress: rewards claimed, rewards earned but not yet claimed, and today's exercises.
+function sanitizeEvent(e) {
+  if (!e || typeof e !== 'object') e = {};
+  const num = (v) => Math.max(0, Math.floor(Number(v)) || 0);
+  const isDay = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+  const claimed = Math.min(EVENT_DAYS, num(e.claimed));
+  const won = {};
+  for (const [day, emoji] of Object.entries(e.won && typeof e.won === 'object' ? e.won : {})) {
+    if (Number(day) >= 1 && Number(day) <= claimed && MYSTERY_POOL.includes(emoji)) won[day] = emoji;
+  }
+  return {
+    claimed,
+    unclaimed: Math.min(EVENT_DAYS - claimed, num(e.unclaimed)),
+    lastEarnedDay: isDay(e.lastEarnedDay) ? e.lastEarnedDay : null,
+    roundsDay: isDay(e.roundsDay) ? e.roundsDay : null,
+    rounds: Math.min(99, num(e.rounds)),
+    won,
+  };
 }
 
 // Cleans one stored friend entry.
@@ -247,6 +310,7 @@ function saveProfile() {
   renderProfile();
   renderStats();
   renderLeaderboard();
+  renderEvent();
 }
 
 function saveFriends() {
@@ -329,10 +393,30 @@ function currentDailyStreak() {
   return profile.lastPlayDay === today() || profile.lastPlayDay === yesterday() ? profile.dailyStreak : 0;
 }
 
+// Whole days between two "YYYY-MM-DD" dates (local calendar days).
+function daysBetween(from, to) {
+  const [y1, m1, d1] = from.split('-').map(Number);
+  const [y2, m2, d2] = to.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
+}
+
+// Streak freezes: each one covers one missed day. If there are enough freezes for
+// every missed day, they are used up and the streak carries on. Returns true if used.
+function applyStreakFreezes() {
+  if (!profile.lastPlayDay || profile.dailyStreak === 0) return false;
+  const missed = daysBetween(profile.lastPlayDay, today()) - 1;
+  if (missed <= 0 || missed > profile.streakFreezes) return false;
+  profile.streakFreezes -= missed;
+  profile.lastPlayDay = yesterday();   // the streak is safe: as if they played yesterday
+  celebrate(`❄️ ${missed === 1 ? 'A streak freeze' : missed + ' streak freezes'} saved your ${profile.dailyStreak}-day streak!`, { confetti: false });
+  return true;
+}
+
 // Called on the first correct answer each day. Does not save; the caller does.
 function registerPractice() {
   const day = today();
   if (profile.lastPlayDay === day) return;
+  applyStreakFreezes();
   profile.dailyStreak = profile.lastPlayDay === yesterday() ? profile.dailyStreak + 1 : 1;
   profile.lastPlayDay = day;
   profile.bestDailyStreak = Math.max(profile.bestDailyStreak, profile.dailyStreak);
@@ -372,6 +456,126 @@ function renderBadges() {
     const desc = document.createElement('small'); desc.textContent = b.desc;
     tile.append(icon, name, desc);
     grid.appendChild(tile);
+  }
+}
+
+/* ---------- 15-Day Reward Event ---------- */
+
+const eventComplete = () => profile.event.claimed >= EVENT_DAYS;
+const roundsToday = () => (profile.event.roundsDay === today() ? profile.event.rounds : 0);
+
+// Called whenever a round is finished (all questions, or the full Speed Round).
+function recordExercise() {
+  const ev = profile.event;
+  const day = today();
+  if (ev.roundsDay !== day) { ev.roundsDay = day; ev.rounds = 0; }
+  ev.rounds++;
+  const canEarn = ev.lastEarnedDay !== day && ev.claimed + ev.unclaimed < EVENT_DAYS;
+  if (canEarn && ev.rounds >= EXERCISES_PER_DAY) {
+    ev.unclaimed++;
+    ev.lastEarnedDay = day;
+    celebrate(`🎁 Day ${ev.claimed + ev.unclaimed} reward unlocked! Tap “Claim” in the Reward Event.`);
+  } else if (canEarn) {
+    const left = EXERCISES_PER_DAY - ev.rounds;
+    celebrate(`${left} more exercise${left === 1 ? '' : 's'} today to unlock your event reward!`, { confetti: false });
+  }
+  saveProfile();
+}
+
+// What a reward looks like on the event track.
+function describeReward(day) {
+  const r = EVENT_REWARDS[day - 1];
+  if (r.type === 'freeze') return { icon: '❄️', text: r.amount === 1 ? 'Streak freeze' : `${r.amount} streak freezes` };
+  if (r.type === 'points') return { icon: '🪙', text: `${r.amount} points` };
+  if (r.type === 'mystery') {
+    const won = profile.event.won[day];
+    const item = won && EVENT_EMOJIS.find((e) => e.emoji === won);
+    return item ? { icon: item.emoji, text: item.name, rarity: 'epic' } : { icon: '🎁', text: 'Mystery emoji', rarity: 'epic' };
+  }
+  if (r.type === 'background') { const bg = BACKGROUNDS_BY_ID[r.id]; return { bg: bg.css, text: bg.name, rarity: bg.rarity }; }
+  return { icon: r.emoji, text: EVENT_EMOJIS.find((e) => e.emoji === r.emoji).name, rarity: 'ultra' };
+}
+
+function claimEventReward() {
+  const ev = profile.event;
+  if (ev.unclaimed <= 0 || eventComplete()) return;
+  const day = ev.claimed + 1;
+  const r = EVENT_REWARDS[day - 1];
+  let message;
+  if (r.type === 'freeze') {
+    profile.streakFreezes += r.amount;
+    message = `❄️ ${r.amount === 1 ? 'A streak freeze' : r.amount + ' streak freezes'}! If you miss a day, it keeps your streak safe.`;
+  } else if (r.type === 'points') {
+    profile.points += r.amount;
+    message = `🪙 +${r.amount} points!`;
+  } else if (r.type === 'mystery') {
+    const choices = MYSTERY_POOL.filter((e) => !profile.ownedEmojis.includes(e));
+    if (choices.length) {
+      const emoji = choices[Math.floor(Math.random() * choices.length)];
+      const item = EVENT_EMOJIS.find((e) => e.emoji === emoji);
+      profile.ownedEmojis.push(emoji);
+      profile.selectedEmoji = emoji;
+      ev.won[day] = emoji;
+      message = `🎁 Mystery emoji: ${emoji} ${item.name}! (Epic — you can’t buy this one!)`;
+    } else {
+      profile.points += 500;                       // already owns them all
+      message = '🎁 You already have every mystery emoji, so here are 500 points!';
+    }
+  } else if (r.type === 'background') {
+    const bg = BACKGROUNDS_BY_ID[r.id];
+    if (!profile.ownedBackgrounds.includes(r.id)) profile.ownedBackgrounds.push(r.id);
+    profile.selectedBackground = r.id;
+    message = `🖼️ ${RARITIES_BY_ID[bg.rarity].name} background: ${bg.name}!`;
+  } else {
+    if (!profile.ownedEmojis.includes(r.emoji)) profile.ownedEmojis.push(r.emoji);
+    profile.selectedEmoji = r.emoji;
+    message = '🐆 ULTRA LEGENDARY Cheetah! You completed the 15-Day Reward Event!';
+    burstConfetti();                               // extra confetti for the big one
+  }
+  ev.claimed++;
+  ev.unclaimed--;
+  endTryOn();
+  saveProfile();
+  tone(1100, 0.15); setTimeout(() => tone(1400, 0.2), 120);
+  celebrate(message);
+}
+
+function renderEvent() {
+  const ev = profile.event;
+  const done = roundsToday();
+  const status = $('eventStatus');
+  const claimBtn = $('claimEventBtn');
+  claimBtn.hidden = ev.unclaimed <= 0;
+  claimBtn.textContent = `🎁 Claim Day ${ev.claimed + 1} reward`;
+  if (eventComplete()) {
+    status.textContent = '🎉 Event complete! You collected all 15 rewards, including the Ultra Legendary Cheetah.';
+  } else if (ev.unclaimed > 0) {
+    status.textContent = `Your Day ${ev.claimed + 1} reward is ready!`;
+  } else if (ev.lastEarnedDay === today()) {
+    status.textContent = `✅ Today’s reward is done. Come back tomorrow for Day ${ev.claimed + 1}!`;
+  } else {
+    status.textContent = `Finish ${EXERCISES_PER_DAY} exercises today (any game, all the way to the end) to unlock Day ${ev.claimed + 1}: ${done} of ${EXERCISES_PER_DAY} done.`;
+  }
+  $('eventPips').textContent = eventComplete() || ev.lastEarnedDay === today() ? '✅✅'
+    : '✅'.repeat(Math.min(done, EXERCISES_PER_DAY)) + '⬜'.repeat(Math.max(0, EXERCISES_PER_DAY - done));
+  $('eventFreezes').textContent = `❄️ Streak freezes: ${profile.streakFreezes}`;
+
+  const track = $('eventTrack');
+  track.textContent = '';
+  for (let day = 1; day <= EVENT_DAYS; day++) {
+    const d = describeReward(day);
+    const state = day <= ev.claimed ? 'claimed' : day <= ev.claimed + ev.unclaimed ? 'ready' : day === ev.claimed + 1 ? 'next' : 'locked';
+    const tile = document.createElement('div');
+    tile.className = `event-day ${state}` + (day === EVENT_DAYS ? ' finale' : '');
+    tile.setAttribute('aria-label', `Day ${day}: ${d.text}. ${{ claimed: 'Claimed', ready: 'Ready to claim', next: 'Next reward', locked: 'Locked' }[state]}`);
+    const label = document.createElement('small'); label.textContent = 'Day ' + day;
+    const icon = document.createElement('span'); icon.className = 'event-icon';
+    if (d.bg) { icon.classList.add('event-swatch'); icon.style.background = d.bg; } else icon.textContent = d.icon;
+    const text = document.createElement('strong'); text.textContent = d.text;
+    tile.append(label, icon, text);
+    if (d.rarity) { const chip = document.createElement('span'); chip.className = `rarity-chip ${d.rarity}`; chip.textContent = RARITIES_BY_ID[d.rarity].name; tile.appendChild(chip); }
+    if (state === 'claimed') { const tick = document.createElement('span'); tick.className = 'event-tick'; tick.textContent = '✓'; tile.appendChild(tick); }
+    track.appendChild(tile);
   }
 }
 
@@ -492,6 +696,7 @@ function renderStats() {
   $('dayStreak').textContent = days.toLocaleString();
   $('dayStreakHint').textContent = profile.lastPlayDay === today() ? 'Day streak ✓ today'
     : days > 0 ? 'Play today to keep it!' : 'Day streak';
+  if (profile.streakFreezes) $('dayStreakHint').textContent += ` · ❄️${profile.streakFreezes}`;
   $('stars').textContent = profile.stars.toLocaleString();
   $('correctCount').textContent = profile.correctTotal.toLocaleString();
   $('streak').textContent = profile.bestStreak.toLocaleString();
@@ -501,7 +706,7 @@ function renderStats() {
 // a name, a price, and a way to draw its preview.
 const SHOPS = {
   emoji: {
-    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG],
+    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG, ...EVENT_EMOJIS],
     key: (item) => item.emoji,
     label: (item) => item.name,
     owned: () => profile.ownedEmojis,
@@ -513,7 +718,7 @@ const SHOPS = {
     },
   },
   bg: {
-    items: () => BACKGROUND_CATALOG,
+    items: () => [...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS],
     key: (item) => item.id,
     label: (item) => item.name + ' background',
     owned: () => profile.ownedBackgrounds,
@@ -577,11 +782,11 @@ function renderShop(kind, grid) {
     const owned = shop.owned().includes(key);
     const chosen = shop.selected() === key;
     const card = document.createElement('div');
-    const rarity = rarityFor(item.price);
+    const rarity = rarityOf(item);
     card.className = `emoji-item rarity-${rarity.id}` + (chosen ? ' chosen' : '');
     const chip = document.createElement('span'); chip.className = 'rarity-chip'; chip.textContent = rarity.name;
     const name = document.createElement('strong'); name.textContent = item.name;
-    const price = document.createElement('small'); price.textContent = item.price ? item.price.toLocaleString() + ' points' : 'Free';
+    const price = document.createElement('small'); price.textContent = item.event ? '🎁 Event only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
     btn.type = 'button';
     if (owned) {
@@ -589,6 +794,11 @@ function renderShop(kind, grid) {
       btn.textContent = chosen ? 'Using ✓' : 'Use';
       btn.setAttribute('aria-label', (chosen ? 'Using ' : 'Use ') + label);
       btn.addEventListener('click', () => useItem(kind, key));
+    } else if (item.event) {
+      btn.textContent = '🎁 Event reward';           // can only be won in the Reward Event
+      btn.className = 'event-locked';
+      btn.disabled = true;
+      btn.setAttribute('aria-label', `${label}: win it in the Reward Event`);
     } else {
       const short = item.price - profile.points;
       const confirming = pendingBuy === kind + ':' + key;
@@ -637,6 +847,7 @@ function buyItem(kind, item) {
   const shop = SHOPS[kind];
   const key = shop.key(item);
   if (shop.owned().includes(key)) return;                     // never charge twice
+  if (item.event) return;                                     // event items can't be bought
   if (profile.points < item.price) return;
   const pendingKey = kind + ':' + key;
   if (pendingBuy !== pendingKey) {
@@ -654,7 +865,7 @@ function buyItem(kind, item) {
   shop.select(key);
   saveProfile();
   tone(900, 0.16);
-  const rarity = rarityFor(item.price);
+  const rarity = rarityOf(item);
   const fancy = rarity.minPrice >= 10000 ? `a ${rarity.name.toUpperCase()} ` : '';   // shout about Epic and Legendary
   celebrate(kind === 'emoji' ? `You got ${fancy}${item.emoji} ${item.name}!` : `You got ${fancy || 'the '}${item.name} background!`);
 }
@@ -1096,6 +1307,7 @@ function finishRound() {
   $('progress').style.width = '100%';
   $('roundLabel').textContent = 'Round finished';
   $('timerLabel').textContent = '';
+  recordExercise();
   const summary = `🏆 Round complete! You got ${game.score} out of ${total}.` + (star ? ' ⭐ You earned a star!' : '');
   if (game.config.typed) {
     setKeypadEnabled(false);
@@ -1161,7 +1373,7 @@ function endSpeedRound() {
   game.locked = true;
   clearTimers();
   profile.bestSpeed = Math.max(profile.bestSpeed, game.score);
-  saveProfile();
+  recordExercise();   // also saves
   const star = awardStarIfEarned();
   if (star) celebrate(`Speedy! ${game.score} in 60 seconds! ⭐`);
   $('answers').textContent = '';
@@ -1210,6 +1422,7 @@ function init() {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     target.focus({ preventScroll: true });   // keyboard and screen-reader users land there too
   });
+  $('claimEventBtn').addEventListener('click', claimEventReward);
   $('makeBackupBtn').addEventListener('click', () => createBackup(false));
   $('shareBackupBtn').addEventListener('click', () => createBackup(true));
   $('restoreBtn').addEventListener('click', restoreBackup);
@@ -1237,10 +1450,12 @@ function init() {
 
   $('profileName').value = profile.name;
   $('storageWarning').hidden = storage.ok;
+  applyStreakFreezes();                  // a missed day? use a freeze if there is one
   storage.write(PROFILE_KEY, profile);   // keeps the new player id
   renderProfile();
   renderStats();
   renderLeaderboard();
+  renderEvent();
 
   // Offline support / Home Screen install (only on https or localhost).
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
@@ -1249,6 +1464,6 @@ function init() {
 }
 
 // Exposed for automated tests.
-window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor };
+window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENT_REWARDS };
 
 init();

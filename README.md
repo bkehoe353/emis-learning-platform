@@ -69,7 +69,11 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 
 **Celebrations:** confetti and a fox message for perfect rounds, stars, new ranks, badges, streaks and purchases. Confetti is skipped if the device asks for reduced motion.
 
-**Rarities:** every emoji and background is Common (under 1,000), Rare (1,000+), Super Rare (5,000+), Epic (10,000+) or Legendary (16,000+), shown with a coloured label. Legendary cards shimmer.
+**Rarities:** every emoji and background is Common (under 1,000), Rare (1,000+), Super Rare (5,000+), Epic (10,000+) or Legendary (16,000+), shown with a coloured label. Legendary cards shimmer. Ultra Legendary is above all of these and can only be won.
+
+**15-Day Reward Event:** finish 2 exercises (any game, played to the end) in a day to unlock that day’s reward, then tap Claim. Missing a day just pauses the event. Rewards: streak freezes (days 1, 6, 10), points (days 2, 5, 8, 12, 14), mystery event-only emojis (days 3, 7, 11), event-only backgrounds (Super Rare, Epic, Legendary on days 4, 9, 13) and the Ultra Legendary 🐆 Cheetah on day 15. Event items show in the shop but can’t be bought.
+
+**Streak freezes:** each freeze covers one missed day, so the day streak isn’t lost. It is used automatically when you next open the site. If you missed more days than you have freezes, the streak resets and the freezes are kept.
 
 **Try it on:** any shop item can be previewed on your character for 6 seconds before buying.
 

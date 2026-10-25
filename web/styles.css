@@ -115,3 +115,31 @@ button:active{transform:scale(.97)}
 .leader-row .rank.place-3{background:#e3dcf8;color:#5b43ba}
 #challenges{scroll-margin-top:16px}
 #challenges:focus{outline:none}
+
+/* --- 15-Day Reward Event --- */
+.event-section{background:linear-gradient(135deg,#fff,#fff8e6)}
+.event-today{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:2px solid #ffe7a3;border-radius:16px;padding:12px 14px}
+.event-today p{flex:1;min-width:200px;margin:0;font-weight:800}
+.event-pips{font-size:1.4rem;letter-spacing:2px}
+.event-claim{animation:claim-bounce 1.2s ease-in-out infinite}
+@keyframes claim-bounce{50%{box-shadow:0 0 0 6px #ffd65a,0 0 22px #ffc93c}}
+.event-track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
+@media(max-width:600px){.event-track{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.event-day{position:relative;text-align:center;border:2px solid #eee8ff;border-radius:14px;padding:8px 4px;background:#fcfbff;display:flex;flex-direction:column;align-items:center;gap:2px}
+.event-day small{color:#68758b;font-weight:800}
+.event-day strong{font-size:.8rem;line-height:1.2}
+.event-day .rarity-chip{font-size:.6rem;padding:2px 7px;margin:2px 0 0}
+.event-icon{font-size:1.8rem;line-height:1.2}
+.event-swatch{width:38px;height:38px;border-radius:10px;border:2px solid #fff;box-shadow:0 0 0 2px #eee3ff}
+.event-day.locked{opacity:.6}
+.event-day.next{border-color:#7357d9;background:#f6f0ff}
+.event-day.ready{border-color:#ffc93c;background:#fff8dc;box-shadow:0 0 12px #ffc93c88}
+.event-day.claimed{border-color:#45c69c;background:#effcf6}
+.event-tick{position:absolute;top:4px;right:6px;color:#17694f;font-weight:900}
+.event-day.finale{border:3px solid #b48cff;background:linear-gradient(160deg,#fff4fb,#f1f9ff,#fffbe8)}
+
+/* --- Ultra Legendary rarity --- */
+.rarity-ultra .rarity-chip,.rarity-chip.ultra{background:linear-gradient(90deg,#ff83b5,#ffd65a,#8de4cb,#8bd5ff,#b48cff,#ff83b5);background-size:200% 100%;color:#20304a;animation:ultra-shift 3s linear infinite}
+@keyframes ultra-shift{to{background-position:200% 0}}
+.emoji-item.rarity-ultra{border:3px solid #b48cff;background:linear-gradient(160deg,#fff4fb,#f1f9ff,#fffbe8);animation:legendary-glow 1.8s ease-in-out infinite}
+.emoji-item button.event-locked{background:#fff1c2;color:#7a5200;opacity:1}
