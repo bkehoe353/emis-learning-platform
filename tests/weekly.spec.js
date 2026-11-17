@@ -1,4 +1,4 @@
-// Tests for tabs, the Weekly Treasure Chest, the pet fox, Boss Battle and the Friend Challenge.
+// Tests for tabs, the Daily Treasure Chest, the Weekly Mega Chest, the pet fox, Boss Battle and the Friend Challenge.
 import { test, expect } from '@playwright/test';
 import { press, fillIn, reveal } from './helpers.js';
 
@@ -74,78 +74,158 @@ test('tabs: one page at a time; leaving Play stops a running game', async ({ pag
 test('tabs: the Event tab shows a dot when a reward is waiting', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#eventDot')).toBeHidden();
-  await setProfile(page, { event: { claimed: 0, unclaimed: 1 } });
+  await setProfile(page, { fashion: { claimed: 0, unclaimed: 1 } });
   await expect(page.locator('#eventDot')).toBeVisible();
   await press(page.locator('#claimEventBtn'));
+  await press(page.locator('#revealCloseBtn'));
   await expect(page.locator('#eventDot')).toBeHidden();
 });
 
-/* ---------- Weekly Treasure Chest ---------- */
+/* ---------- Daily Treasure Chest ---------- */
 
-test('chest: practise on 4 days in a week, open it once, new chest next week', async ({ page }) => {
-  test.setTimeout(90_000);   // long test: several simulated days / two full rounds
-  await startOn(page, '2026-04-06T09:00:00');          // a Monday
-  await setProfile(page, { points: 0 }, { settled: false });
-  for (const day of ['2026-04-06', '2026-04-07', '2026-04-09']) {
-    await page.clock.setSystemTime(new Date(day + 'T09:00:00'));
-    await page.reload();
-    await answerOneQuickQuizQuestion(page);
-    await answerOneQuickQuizQuestion(page);              // a second answer the same day doesn't count twice
-  }
-  await expect(page.locator('#chestStatus')).toContainText('1 more day');
+// One lesson: a full Speed Round (it ends by itself after 60 seconds).
+async function finishLesson(page) {
+  await press(page.getByRole('button', { name: 'Start the timer →' }));
+  await page.clock.runFor(61_000);
+  await expect(page.locator('#roundLabel')).toHaveText('Round finished');
+  await press(page.locator('#closeBtn'));
+}
+
+test('daily chest: 1 lesson unlocks it, the prize is shown, once a day', async ({ page }) => {
+  await startOn(page, '2026-04-07T09:00:00');
+  await setProfile(page, {});
+  await expect(page.locator('#chestStatus')).toContainText('Finish 1 lesson today');
   await expect(page.locator('#openChestBtn')).toBeHidden();
-  await expect(page.locator('#chestDays .chest-day.done')).toHaveCount(3);
 
-  await page.clock.setSystemTime(new Date('2026-04-12T09:00:00'));   // Sunday, same week
-  await page.reload();
-  await answerOneQuickQuizQuestion(page);
+  await finishLesson(page);
   await expect(page.locator('#eventDot')).toBeVisible();
-  await reveal(page.locator('#openChestBtn'));
-  await expect(page.locator('#openChestBtn')).toBeVisible();
-
-  const before = await profileOf(page);
+  await expect(page.locator('#openChestBtn')).toHaveText('🧰 Open today’s chest!');
   await press(page.locator('#openChestBtn'));
   await page.clock.runFor(1_000);
-  const after = await profileOf(page);
-  expect(after.chestsOpened).toBe(1);
-  const chestEmojis = await page.evaluate(() => window.EmiApp.CHEST_EMOJIS.map((e) => e.emoji));
-  const gotEmoji = after.ownedEmojis.some((e) => chestEmojis.includes(e));
-  // The first chest also earns the Treasure Hunter badge (+50), so take that off.
-  const badgeBonus = !before.badges.chest && after.badges.chest ? 50 : 0;
-  const prizePoints = after.points - before.points - badgeBonus;
-  const gotPoints = prizePoints >= 250 && prizePoints <= 500;
-  const gotFreeze = after.streakFreezes === before.streakFreezes + 1;
-  expect([gotEmoji, gotPoints, gotFreeze].filter(Boolean)).toHaveLength(1);
-  await expect(page.locator('#chestStatus')).toContainText('opened this week');
+  await expect(page.locator('#prizeReveal')).toBeVisible();
+  await expect(page.locator('#revealTitle')).toContainText('You opened the chest');
+  await expect(page.locator('#revealName')).not.toHaveText('');
+  await press(page.locator('#revealCloseBtn'));
+  expect((await profileOf(page)).chestsOpened).toBe(1);
+  await expect(page.locator('#chestStatus')).toContainText('opened today’s chest');
   await expect(page.locator('#openChestBtn')).toBeHidden();
-  await expect(page.locator('#eventDot')).toBeHidden();
 
-  // A new week brings a new chest.
-  await page.clock.setSystemTime(new Date('2026-04-13T09:00:00'));
+  await finishLesson(page);                             // a second lesson doesn't give a second chest
+  await expect(page.locator('#openChestBtn')).toBeHidden();
+
+  await page.clock.setSystemTime(new Date('2026-04-08T09:00:00'));   // next day: needs a new lesson
   await page.reload();
-  await expect(page.locator('#chestStatus')).toContainText('0 of 4');
+  await expect(page.locator('#openChestBtn')).toBeHidden();
+  await finishLesson(page);
+  await reveal(page.locator('#openChestBtn'));
+  await expect(page.locator('#openChestBtn')).toBeVisible();
 });
 
-test('chest: never gives a duplicate emoji; chest emojis cannot be bought', async ({ page }) => {
+test('daily chest: a won emoji is shown and can be used straight away', async ({ page }) => {
+  await page.addInitScript(() => { Math.random = () => 0.1; });   // the chest picks an emoji (the first one)
+  await startOn(page, '2026-04-07T09:00:00');
+  await setProfile(page, { lessonsDay: '2026-04-07', lessons: 1 });
+  await press(page.locator('#openChestBtn'));
+  await page.clock.runFor(1_000);
+  await expect(page.locator('#revealName')).toHaveText('Sloth');
+  await expect(page.locator('#revealRarity')).toHaveText('Super Rare');
+  await press(page.locator('#revealUseBtn'));
+  await expect(page.locator('#profileAvatar')).toHaveText('🦥');
+});
+
+test('daily chest: never gives a duplicate emoji; chest emojis cannot be bought', async ({ page }) => {
   await startOn(page, '2026-04-09T09:00:00');
   const chestEmojis = await page.evaluate(() => window.EmiApp.CHEST_EMOJIS.map((e) => e.emoji));
-  await setProfile(page, {
-    points: 99999, ownedEmojis: ['😀', ...chestEmojis],
-    chest: { week: '2026-04-06', days: ['2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09'], opened: false },
-  });
+  await setProfile(page, { points: 99999, ownedEmojis: ['😀', ...chestEmojis], lessonsDay: '2026-04-09', lessons: 1 });
   await press(page.locator('#openChestBtn'));
   await page.clock.runFor(1_000);
   const p = await profileOf(page);
   expect(p.ownedEmojis).toHaveLength(1 + chestEmojis.length);   // nothing new, nothing doubled
-  expect(p.chestsOpened).toBe(1);
+  await press(page.locator('#revealCloseBtn'));
 
-  await press(page.locator('#emojiMore'));
-  await expect(page.getByRole('button', { name: 'Sloth: win it in the Treasure Chest' })).toBeHidden();   // owned → "Use"
   await setProfile(page, { points: 99999 });
   await press(page.locator('#emojiMore'));
   const sloth = page.getByRole('button', { name: 'Sloth: win it in the Treasure Chest' });
   await expect(sloth).toBeDisabled();
   await expect(sloth).toHaveText('🧰 Chest prize');
+});
+
+/* ---------- Weekly Mega Chest ---------- */
+
+test('mega chest: lessons on 3 days open it on Sunday, with 5 prizes including a new emoji', async ({ page }) => {
+  test.setTimeout(90_000);
+  await startOn(page, '2026-04-06T09:00:00');           // a Monday
+  await setProfile(page, {});
+  for (const day of ['2026-04-06', '2026-04-07', '2026-04-08']) {
+    await page.clock.setSystemTime(new Date(day + 'T09:00:00'));
+    await page.reload();
+    await finishLesson(page);
+  }
+  await expect(page.locator('#megaStatus')).toContainText('opens on Sunday');
+  await expect(page.locator('#openMegaBtn')).toBeHidden();
+  await expect(page.locator('#megaDays .chest-day.done')).toHaveCount(3);
+
+  await page.clock.setSystemTime(new Date('2026-04-12T10:00:00'));  // Sunday
+  await page.reload();
+  await expect(page.locator('#eventDot')).toBeVisible();
+  const before = await profileOf(page);
+  await press(page.locator('#openMegaBtn'));
+  await page.clock.runFor(1_500);
+  await expect(page.locator('#prizeReveal')).toBeVisible();
+  await expect(page.locator('#revealTitle')).toContainText('Mega Chest');
+  await expect(page.locator('#revealVisual .reveal-item')).toHaveCount(5);
+  const after = await profileOf(page);
+  const newEmojis = after.ownedEmojis.filter((e) => !before.ownedEmojis.includes(e));
+  expect(newEmojis.length).toBeGreaterThanOrEqual(1);
+  expect(after.megaOpenedWeek).toBe('2026-04-06');
+
+  await press(page.locator('#revealUseBtn'));          // use the guaranteed new emoji
+  expect((await profileOf(page)).selectedEmoji).toBe(newEmojis[0]);
+  await page.reload();
+  await expect(page.locator('#openMegaBtn')).toBeHidden();
+  await expect(page.locator('#megaStatus')).toContainText('opened this week’s Mega Chest');
+});
+
+test('mega chest: if Sunday is missed it waits during the next week; 2 days is not enough', async ({ page }) => {
+  test.setTimeout(90_000);
+  await startOn(page, '2026-04-06T09:00:00');
+  await setProfile(page, { weekLessons: { week: '2026-04-06', days: ['2026-04-06', '2026-04-07', '2026-04-09'] } });
+  await page.clock.setSystemTime(new Date('2026-04-14T09:00:00'));   // the following Tuesday
+  await page.reload();
+  await expect(page.locator('#megaStatus')).toContainText('last week');
+  await press(page.locator('#openMegaBtn'));
+  await page.clock.runFor(1_500);
+  await expect(page.locator('#revealVisual .reveal-item')).toHaveCount(5);
+  await press(page.locator('#revealCloseBtn'));
+  await expect(page.locator('#openMegaBtn')).toBeHidden();
+
+  // Only 2 days this week: no chest on Sunday.
+  await setProfile(page, { weekLessons: { week: '2026-04-13', days: ['2026-04-13', '2026-04-14'] } });
+  await page.clock.setSystemTime(new Date('2026-04-19T09:00:00'));
+  await page.reload();
+  await expect(page.locator('#openMegaBtn')).toBeHidden();
+  await expect(page.locator('#megaStatus')).toContainText('1 more day');
+});
+
+test('mega chest contents: always 5, first is a new emoji, no duplicates (even when chest emojis are owned)', async ({ page }) => {
+  await page.goto('/');
+  const chestEmojis = await page.evaluate(() => window.EmiApp.CHEST_EMOJIS.map((e) => e.emoji));
+  for (const owned of [['😀'], ['😀', ...chestEmojis]]) {
+    await setProfile(page, { ownedEmojis: owned });
+    const problems = await page.evaluate((owned) => {
+      const bad = [];
+      for (let i = 0; i < 300; i++) {
+        const items = window.EmiApp.rollMegaChest();
+        const emojis = items.filter((p) => p.type === 'emoji').map((p) => p.item.emoji);
+        const bgs = items.filter((p) => p.type === 'background').map((p) => p.item.id);
+        if (items.length !== 5 || items[0].type !== 'emoji') bad.push('shape');
+        if (new Set(emojis).size !== emojis.length || new Set(bgs).size !== bgs.length) bad.push('duplicate');
+        if (emojis.some((e) => owned.includes(e))) bad.push('already owned');
+      }
+      return [...new Set(bad)];
+    }, owned);
+    expect(problems).toEqual([]);
+  }
 });
 
 /* ---------- Pet fox ---------- */

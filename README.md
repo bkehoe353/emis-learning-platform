@@ -65,21 +65,27 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 
 **Daily streak:** the first correct answer each day adds to your day streak and gives a daily bonus (+20 on day 1, rising to +110 from day 10). Miss a day and it starts again.
 
-**Badges:** 23 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
+**Badges:** 25 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
 
 **Celebrations:** confetti and a fox message for perfect rounds, stars, new ranks, badges, streaks and purchases. Confetti is skipped if the device asks for reduced motion.
 
-**Rarities:** every emoji and background is Common (under 1,000), Rare (1,000+), Super Rare (5,000+), Epic (10,000+) or Legendary (16,000+), shown with a coloured label. Legendary cards shimmer. Ultra Legendary is above all of these and can only be won.
+**Rarities:** every emoji and background is Common (under 1,000), Rare (1,000+), Super Rare (5,000+), Epic (10,000+) or Legendary (16,000+), shown with a coloured label. Legendary cards shimmer. Ultra Legendary (the Cheetah and the Emi emoji) is above all of these.
 
-**15-Day Reward Event:** finish 2 exercises (any game, played to the end) in a day to unlock that day’s reward, then tap Claim. Missing a day just pauses the event. Rewards: streak freezes (days 1, 6, 10), points (days 2, 5, 8, 12, 14), mystery event-only emojis (days 3, 7, 11), event-only backgrounds (Super Rare, Epic, Legendary on days 4, 9, 13) and the Ultra Legendary 🐆 Cheetah on day 15. Event items show in the shop but can’t be bought.
+**15-Day Reward Event (ended):** its prizes (the epic animal emojis, the 🐆 Cheetah and three backgrounds) are now sold in the Shop. Any reward a player had unlocked but not claimed is given automatically.
+
+**Fox Fashion Event (20 days):** finish 2 lessons (any game, played to the end) in a day to unlock that day’s reward, then tap Claim. Missing a day just pauses the event. A fox suit every 3 days (Beach, Dinosaur, Astronaut, Pirate, Wizard, Superhero) and the Ultra Legendary Royal Dragon Suit on day 20. Other days give points, streak freezes or bonus chests. Suits can be changed under the pet on the Play tab.
+
+**Emi emoji:** an Ultra Legendary emoji of a girl riding a cheetah (drawn as 👧 on 🐆). It costs 30,000 points and can only be bought.
 
 **Streak freezes:** each freeze covers one missed day, so the day streak isn’t lost. It is used automatically when you next open the site. If you missed more days than you have freezes, the streak resets and the freezes are kept.
 
 **Tabs:** the site is split into Play, Shop, Friends and Event tabs. A dot on the Event tab means a reward or the chest is waiting. Leaving the Play tab stops any game in progress.
 
-**Weekly Treasure Chest:** practise (get at least one answer right) on 4 different days between Monday and Sunday to unlock one free chest. Prizes: 250–500 points, a streak freeze, or one of six chest-only emojis (never a duplicate). The possible prizes are shown up front, and chests can’t be bought.
+**Daily Treasure Chest:** finish 1 lesson to open a free chest every day. Prizes: 100–250 points, a streak freeze, or one of six chest-only emojis (never a duplicate). Bonus chests from the event can be opened any time. A prize screen shows exactly what was won.
 
-**Pet fox:** grows through six stages (Baby → Little → Clever → Super → Royal → Legendary Fox) as correct answers add up. It can be renamed, cheers when tapped, and is never sad.
+**Weekly Mega Chest:** finish lessons on 3 different days in a week (Monday–Sunday) and a Mega Chest opens on Sunday (if Sunday is missed it waits during the next week). It holds 5 prizes, always including at least one new emoji, plus points, a streak freeze, a bonus chest or a new background. All 5 are shown on the prize screen.
+
+**Pet fox:** a happy fox that grows through six stages (Baby → Little → Clever → Super → Royal → Legendary Fox) as correct answers add up. It can be renamed, wear suits from the Fox Fashion Event, cheers when tapped, and is never sad.
 
 **Boss Battle:** a new boss every Monday with 300 HP. Each correct answer hits it for 10, or 15 if answered within 3 seconds (critical). Health is saved through the week. Beating it gives +300 points and the Boss Beater badge.
 
@@ -92,3 +98,7 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 **Progress backup:** “Make backup code” creates a code (starting with EMI1-) holding all progress and friends. Pasting it into “Restore” on any device brings everything back (two taps, because it replaces that device’s progress). A checksum rejects codes that were copied wrongly. It is not tamper-proof.
 
 Every correct answer earns +10 points, once per question. Points buy emojis and backgrounds in the Shop, which has an Emojis tab and a Backgrounds tab. A star is earned for a great round (8/10, 20/25, or 15 in a Speed Round).
+
+## Credits
+
+The happy fox (app icon, logo and pet) is based on the fox from Microsoft’s [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (MIT licence), with smiling eyes and rosy cheeks added. Source image: `tools/assets/fox_3d.png`. Rebuild the icons with `node tools/make-icons.mjs`.

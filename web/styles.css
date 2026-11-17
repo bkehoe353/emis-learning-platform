@@ -205,3 +205,57 @@ button:active{transform:scale(.97)}
 .hero h1{font-size:clamp(1.9rem,4.2vw,3rem);margin:8px 0 10px}
 .hero p{margin:0 0 14px}
 .hero-art{font-size:clamp(3rem,7vw,4.6rem)}
+
+/* --- Happy fox logo and pet --- */
+.logo img{width:40px;height:40px;object-fit:contain}
+.pet{overflow:visible}
+.pet-body{width:2.8rem;height:auto;transition:width .4s;filter:drop-shadow(0 4px 6px #c9762a44)}
+.pet-prop{position:absolute;bottom:6px;right:8px;font-size:2.1rem}
+.pet .pet-accessory{top:2px;right:auto;left:50%;transform:translateX(-50%);font-size:2.3rem}
+.pet:not(.happy) .pet-body{animation:fox-bob 3s ease-in-out infinite}
+@keyframes fox-bob{50%{transform:translateY(-4px)}}
+.wardrobe{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.suit-btn{padding:8px 12px;border-radius:12px;background:#fff;border:2px solid #f1dcc4;color:var(--ink);font-size:.9rem}
+.suit-btn.on{background:#ffe7c2;border-color:#ff9f43}
+.suit-btn.locked{background:#f4f4f7;color:#9aa1b0;border-style:dashed}
+.event-tag{color:#c96a12!important;font-size:.7rem}
+.event-day.suit-day{border-color:#ffc58a;background:#fff7ee}
+
+/* --- Fox figure (used in the prize screen) --- */
+.fox-figure{position:relative;display:inline-grid;place-items:center;border-radius:50%;padding:.9em;line-height:1}
+.fox-figure .fox-hat{position:absolute;top:-.1em;left:50%;transform:translateX(-50%);font-size:1.6em}
+.fox-figure .fox-prop{position:absolute;bottom:.1em;right:.1em;font-size:1.5em}
+
+/* --- The Emi emoji: a girl riding a cheetah --- */
+.emi-wrap{position:relative;display:inline-block;line-height:1}
+.emi-cheetah{display:inline-block}
+.emi-girl{position:absolute;left:50%;top:-.42em;transform:translateX(-35%);font-size:.62em}
+.avatar .emi-wrap,.shop-emoji .emi-wrap,.face .emi-wrap,.bg-swatch .emi-wrap{margin-top:.3em}
+
+/* --- Prize screen --- */
+.reveal-backdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:#20304acc;animation:reveal-fade .25s ease-out}
+.reveal-card{width:min(92vw,400px);background:#fff;border-radius:28px;padding:24px 20px;text-align:center;box-shadow:0 20px 60px #0006;animation:reveal-pop .45s cubic-bezier(.2,1.4,.4,1)}
+.reveal-title{margin:0;font-weight:900;color:#5b43ba}
+.reveal-visual{display:grid;place-items:center;min-height:130px;font-size:5.5rem;margin:8px auto}
+.reveal-visual.reveal-swatch{width:140px;height:140px;border-radius:30px;font-size:4rem;border:4px solid #fff;box-shadow:0 0 0 3px #eee3ff}
+.reveal-name{margin:4px 0 8px;font-size:1.6rem}
+.reveal-note{color:#68758b;margin:10px 0 0;min-height:1em}
+.reveal-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.reveal-buttons button{min-height:52px;min-width:140px}
+@keyframes reveal-fade{from{opacity:0}}
+@keyframes reveal-pop{from{transform:scale(.5) rotate(-6deg);opacity:0}}
+
+/* --- Weekly Mega Chest --- */
+.mega-section{background:linear-gradient(135deg,#fff,#fff0fb)}
+.chest.mega{font-size:4.8rem}
+.chest-day.sunday{outline:2px dashed #ff83b5;outline-offset:1px}
+.reveal-visual.reveal-many{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;font-size:1rem;min-height:0;width:100%}
+.reveal-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:16px;border:2px solid #eee8ff;background:#fcfbff;opacity:0;animation:reveal-pop .45s cubic-bezier(.2,1.4,.4,1) forwards}
+.reveal-item strong{font-size:.85rem;line-height:1.2}
+.reveal-item .rarity-chip{font-size:.6rem;margin:0}
+.reveal-item-pic{font-size:2.6rem;line-height:1.2;display:grid;place-items:center;min-height:64px}
+.reveal-item-pic.reveal-swatch{width:56px;height:56px;border-radius:14px;font-size:1.6rem;border:3px solid #fff;box-shadow:0 0 0 2px #eee3ff}
+.reveal-item.rarity-legendary,.reveal-item.rarity-ultra{border-color:#ffc93c;background:#fffbe8}
+.reveal-item.rarity-epic{border-color:#ff9cc6}
+.reveal-card:has(.reveal-many){width:min(94vw,640px)}
+@keyframes reveal-pop{from{transform:scale(.5) rotate(-6deg);opacity:0}to{opacity:1}}

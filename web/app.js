@@ -98,8 +98,10 @@ const BADGES = [
   { id: 'shopper',    icon: '🛍️', name: 'First Buy',        desc: 'Buy something in the shop',            test: (p) => p.ownedEmojis.length > 1 || p.ownedBackgrounds.length > 1 },
   { id: 'pet',        icon: '🦊', name: 'Fox Friend',       desc: 'Grow your fox into a Super Fox',       test: (p) => p.petStage >= 3 },
   { id: 'boss',       icon: '⚔️', name: 'Boss Beater',      desc: 'Defeat a weekly boss',                 test: (p) => p.bossesDefeated >= 1 },
-  { id: 'chest',      icon: '🧰', name: 'Treasure Hunter',  desc: 'Open a Weekly Treasure Chest',         test: (p) => p.chestsOpened >= 1 },
+  { id: 'chest',      icon: '🧰', name: 'Treasure Hunter',  desc: 'Open a Treasure Chest',                test: (p) => p.chestsOpened >= 1 },
   { id: 'challenge',  icon: '🏁', name: 'Challenger',       desc: 'Play a Friend Challenge',              test: (p) => p.challengesPlayed >= 1 },
+  { id: 'fashion',    icon: '👗', name: 'Fashion Fox',      desc: 'Collect 3 fox suits',                  test: (p) => p.ownedSuits.length >= 3 },
+  { id: 'mega',       icon: '🎁', name: 'Mega Haul',        desc: 'Open a Weekly Mega Chest',             test: (p) => p.megaChestsOpened >= 1 },
   { id: 'collector',  icon: '🎨', name: 'Collector',        desc: 'Own 10 emojis from the shop',          test: (p) => p.ownedEmojis.length >= 11 },
 ];
 const BADGES_BY_ID = Object.fromEntries(BADGES.map((b) => [b.id, b]));
@@ -158,57 +160,91 @@ const RARITIES = [
   { id: 'legendary', name: 'Legendary',  minPrice: 16000 },
 ];
 const rarityFor = (price) => [...RARITIES].reverse().find((r) => price >= r.minPrice);
-// Ultra Legendary is above every shop tier: it can only be won (the Day 15 Cheetah).
+// Ultra Legendary is the top tier, above every price tier (Cheetah and the Emi emoji).
 const ULTRA = { id: 'ultra', name: 'Ultra Legendary', minPrice: Infinity };
 const RARITIES_BY_ID = Object.fromEntries([...RARITIES, ULTRA].map((r) => [r.id, r]));
-// Event items have a fixed rarity; shop items get theirs from the price.
+// Some items have a fixed rarity; the rest get theirs from the price.
 const rarityOf = (item) => (item.rarity ? RARITIES_BY_ID[item.rarity] : rarityFor(item.price));
 
-/* ---------- 15-Day Reward Event ---------- */
-// Event-only items: never sold in the shop.
+/* ---------- Ex-event items (now in the shop) ---------- */
+// These were 15-Day Reward Event prizes. The event has ended, so they can now be bought.
 const EVENT_EMOJIS = [
-  { emoji: '🦉', name: 'Owl', rarity: 'epic' }, { emoji: '🦦', name: 'Otter', rarity: 'epic' },
-  { emoji: '🐨', name: 'Koala', rarity: 'epic' }, { emoji: '🦔', name: 'Hedgehog', rarity: 'epic' },
-  { emoji: '🐧', name: 'Penguin', rarity: 'epic' }, { emoji: '🦝', name: 'Raccoon', rarity: 'epic' },
-  { emoji: '🦜', name: 'Parrot', rarity: 'epic' }, { emoji: '🐝', name: 'Bee', rarity: 'epic' },
-  { emoji: '🐆', name: 'Cheetah', rarity: 'ultra' },
-].map((e) => ({ ...e, price: 0, event: true }));
+  { emoji: '🦉', name: 'Owl', rarity: 'epic', price: 11000 }, { emoji: '🦦', name: 'Otter', rarity: 'epic', price: 11500 },
+  { emoji: '🐨', name: 'Koala', rarity: 'epic', price: 12000 }, { emoji: '🦔', name: 'Hedgehog', rarity: 'epic', price: 12500 },
+  { emoji: '🐧', name: 'Penguin', rarity: 'epic', price: 13000 }, { emoji: '🦝', name: 'Raccoon', rarity: 'epic', price: 13500 },
+  { emoji: '🦜', name: 'Parrot', rarity: 'epic', price: 14000 }, { emoji: '🐝', name: 'Bee', rarity: 'epic', price: 14500 },
+  { emoji: '🐆', name: 'Cheetah', rarity: 'ultra', price: 25000 },
+];
 const MYSTERY_POOL = EVENT_EMOJIS.filter((e) => e.rarity !== 'ultra').map((e) => e.emoji);
+// The Emi emoji: a girl riding a cheetah. Ultra Legendary, and it must be bought.
+// Stored as the two emojis together; drawn stacked (girl on the cheetah's back) by setEmoji().
+const EMI_EMOJI = '👧🐆';
+const EMI_ITEM = { emoji: EMI_EMOJI, name: 'Emi', rarity: 'ultra', price: 30000 };
 const EVENT_BACKGROUNDS = [
-  { id: 'savanna', name: 'Savanna', rarity: 'super', css: 'radial-gradient(circle at 75% 25%,#fff3b0 0 9%,transparent 10%),linear-gradient(180deg,#ffd27a,#f4a640 60%,#9c6b2f)' },
-  { id: 'goldenhour', name: 'Golden Hour', rarity: 'epic', css: 'radial-gradient(circle at 50% 85%,#fff2a8 0 16%,transparent 17%),linear-gradient(180deg,#ff8a8a,#ffb36b 55%,#ffe39a)' },
-  { id: 'rainbowgalaxy', name: 'Rainbow Galaxy', rarity: 'legendary', css: STARS + ',conic-gradient(from 90deg at 50% 50%,#ff83b599,#ffd65a99,#8de4cb99,#8bd5ff99,#b48cff99,#ff83b599),linear-gradient(135deg,#0b0b2e,#3a1c71)' },
-].map((b) => ({ ...b, price: 0, event: true }));
+  { id: 'savanna', name: 'Savanna', rarity: 'super', price: 6000, css: 'radial-gradient(circle at 75% 25%,#fff3b0 0 9%,transparent 10%),linear-gradient(180deg,#ffd27a,#f4a640 60%,#9c6b2f)' },
+  { id: 'goldenhour', name: 'Golden Hour', rarity: 'epic', price: 12000, css: 'radial-gradient(circle at 50% 85%,#fff2a8 0 16%,transparent 17%),linear-gradient(180deg,#ff8a8a,#ffb36b 55%,#ffe39a)' },
+  { id: 'rainbowgalaxy', name: 'Rainbow Galaxy', rarity: 'legendary', price: 17500, css: STARS + ',conic-gradient(from 90deg at 50% 50%,#ff83b599,#ffd65a99,#8de4cb99,#8bd5ff99,#b48cff99,#ff83b599),linear-gradient(135deg,#0b0b2e,#3a1c71)' },
+];
 const BACKGROUNDS_BY_ID = Object.fromEntries([...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS].map((b) => [b.id, b]));
 
-const EVENT_DAYS = 15;
-const EXERCISES_PER_DAY = 2;
-const EVENT_REWARDS = [
-  { type: 'freeze', amount: 1 },
-  { type: 'points', amount: 100 },
-  { type: 'mystery' },
-  { type: 'background', id: 'savanna' },
-  { type: 'points', amount: 200 },
-  { type: 'freeze', amount: 1 },
-  { type: 'mystery' },
-  { type: 'points', amount: 300 },
-  { type: 'background', id: 'goldenhour' },
-  { type: 'freeze', amount: 2 },
-  { type: 'mystery' },
-  { type: 'points', amount: 500 },
-  { type: 'background', id: 'rainbowgalaxy' },
-  { type: 'points', amount: 1000 },
-  { type: 'emoji', emoji: '🐆' },
+/* ---------- Fox suits (won in the Fox Fashion Event) ---------- */
+// Each suit dresses the pet fox: a background, a hat (on its head) and a prop (beside it).
+const FOX_SUITS = [
+  { id: 'beach',     name: 'Beach Suit',        icon: '🏖️', hat: '👒', prop: '🏐', rarity: 'rare',      bg: 'linear-gradient(180deg,#8bd5ff 0 52%,#ffe39a 52%)' },
+  { id: 'dino',      name: 'Dinosaur Suit',     icon: '🦖', hat: '🦖', prop: '🦴', rarity: 'super',     bg: 'radial-gradient(circle at 30% 30%,#d6f7c4,#3fa66a)' },
+  { id: 'astronaut', name: 'Astronaut Suit',    icon: '🚀', hat: '🌟', prop: '🚀', rarity: 'super',     bg: STARS + ',linear-gradient(180deg,#0b1033,#2a1a5e)' },
+  { id: 'pirate',    name: 'Pirate Suit',       icon: '🏴‍☠️', hat: '🏴‍☠️', prop: '🦜', rarity: 'epic',  bg: 'linear-gradient(180deg,#a8e4ff,#2f7fc1)' },
+  { id: 'wizard',    name: 'Wizard Suit',       icon: '🧙', hat: '🎩', prop: '🪄', rarity: 'epic',      bg: 'radial-gradient(circle,#d9c4ff,#5b2a86)' },
+  { id: 'superhero', name: 'Superhero Suit',    icon: '🦸', hat: '⚡', prop: '🛡️', rarity: 'legendary', bg: 'linear-gradient(135deg,#ff6b6b,#4d7cff)' },
+  { id: 'dragon',    name: 'Royal Dragon Suit', icon: '🐉', hat: '👑', prop: '🐉', rarity: 'ultra',     bg: 'radial-gradient(circle,#ffe27a,#ff7a3d)' },
 ];
+const SUITS_BY_ID = Object.fromEntries(FOX_SUITS.map((s) => [s.id, s]));
 
-// Weekly Treasure Chest: practise on 4 different days in a week (Monday–Sunday).
-const CHEST_DAYS_NEEDED = 4;
+/* ---------- Events ---------- */
+// Finish EXERCISES_PER_DAY lessons in a day to unlock that day's reward, then claim it.
+// Missing a day just pauses the event.
+const EXERCISES_PER_DAY = 2;
+const EVENTS = {
+  // Ended: any reward unlocked but not claimed is given automatically.
+  reward15: {
+    key: 'event', name: '15-Day Reward Event', days: 15, ended: true,
+    rewards: [
+      { type: 'freeze', amount: 1 }, { type: 'points', amount: 100 }, { type: 'mystery' }, { type: 'background', id: 'savanna' },
+      { type: 'points', amount: 200 }, { type: 'freeze', amount: 1 }, { type: 'mystery' }, { type: 'points', amount: 300 },
+      { type: 'background', id: 'goldenhour' }, { type: 'freeze', amount: 2 }, { type: 'mystery' }, { type: 'points', amount: 500 },
+      { type: 'background', id: 'rainbowgalaxy' }, { type: 'points', amount: 1000 }, { type: 'emoji', emoji: '🐆' },
+    ],
+  },
+  // Running now: a fox suit every 3 days, other rewards in between.
+  fashion: {
+    key: 'fashion', name: 'Fox Fashion Event', days: 20,
+    rewards: [
+      { type: 'points', amount: 100 }, { type: 'freeze', amount: 1 }, { type: 'suit', id: 'beach' },
+      { type: 'points', amount: 150 }, { type: 'chest', amount: 1 }, { type: 'suit', id: 'dino' },
+      { type: 'points', amount: 200 }, { type: 'freeze', amount: 1 }, { type: 'suit', id: 'astronaut' },
+      { type: 'points', amount: 300 }, { type: 'chest', amount: 1 }, { type: 'suit', id: 'pirate' },
+      { type: 'points', amount: 400 }, { type: 'freeze', amount: 2 }, { type: 'suit', id: 'wizard' },
+      { type: 'chest', amount: 2 }, { type: 'points', amount: 500 }, { type: 'suit', id: 'superhero' },
+      { type: 'points', amount: 1000 }, { type: 'suit', id: 'dragon' },
+    ],
+  },
+};
+const ACTIVE_EVENT = EVENTS.fashion;
+
+/* ---------- Daily Treasure Chest ---------- */
+// One free chest a day, unlocked by finishing 1 lesson (any game, played to the end).
+// Bonus chests from the event can be opened any time.
 const CHEST_EMOJIS = [
   { emoji: '🦥', name: 'Sloth' }, { emoji: '🦭', name: 'Seal' }, { emoji: '🐡', name: 'Blowfish' },
   { emoji: '🐞', name: 'Ladybird' }, { emoji: '🦀', name: 'Crab' }, { emoji: '🐌', name: 'Snail' },
 ].map((e) => ({ ...e, rarity: 'super', price: 0, event: true, source: 'chest' }));
-// Items that can only be won (Reward Event or Treasure Chest), shown in the shop but not for sale.
-const SPECIAL_EMOJIS = [...EVENT_EMOJIS, ...CHEST_EMOJIS];
+// Weekly Mega Chest: lessons on this many different days (Mon–Sun) unlock it on Sunday.
+const MEGA_DAYS_NEEDED = 3;
+// Items that can only be won (Treasure Chest), shown in the shop but not for sale.
+const SPECIAL_EMOJIS = CHEST_EMOJIS;
+// Everything the emoji shop sells, cheapest first.
+const SHOP_EMOJIS = [...EMOJI_CATALOG, ...EVENT_EMOJIS, EMI_ITEM].sort((a, b) => a.price - b.price);
+const SHOP_BACKGROUNDS = [...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS].sort((a, b) => a.price - b.price);
 
 // Pet fox: grows as the player gets answers right. It is never sad.
 const PET_STAGES = [
@@ -234,6 +270,19 @@ const BOSSES = [
 /* ---------- Helpers ---------- */
 
 const $ = (id) => document.getElementById(id);
+
+// Puts an emoji into an element. The Emi emoji is drawn as a girl sitting on a cheetah's back.
+function setEmoji(el, value) {
+  el.textContent = '';
+  const isEmi = value === EMI_EMOJI;
+  el.classList.toggle('emi-combo', isEmi);
+  if (!isEmi) { el.textContent = value; return; }
+  const cheetah = document.createElement('span'); cheetah.className = 'emi-cheetah'; cheetah.textContent = '🐆';
+  const girl = document.createElement('span'); girl.className = 'emi-girl'; girl.textContent = '👧';
+  const wrap = document.createElement('span'); wrap.className = 'emi-wrap'; wrap.setAttribute('role', 'img'); wrap.setAttribute('aria-label', 'Emi riding a cheetah');
+  wrap.append(cheetah, girl);
+  el.appendChild(wrap);
+}
 // All question randomness goes through rng(), so the Friend Challenge can swap in a
 // "seeded" generator that gives everyone the same questions on the same day.
 let rng = Math.random;
@@ -306,14 +355,24 @@ function sanitizeProfile(saved) {
     badges: Object.fromEntries(Object.entries(saved.badges && typeof saved.badges === 'object' ? saved.badges : {})
       .filter(([id, day]) => BADGES_BY_ID[id] && typeof day === 'string').map(([id, day]) => [id, day.slice(0, 10)])),
     streakFreezes: Math.min(99, num(saved.streakFreezes)),
-    event: sanitizeEvent(saved.event),
+    event: sanitizeEvent(saved.event, EVENTS.reward15.days),     // the ended 15-Day Reward Event
+    fashion: sanitizeEvent(saved.fashion, EVENTS.fashion.days),  // the Fox Fashion Event
     petName: typeof saved.petName === 'string' && saved.petName.trim() ? saved.petName.trim().slice(0, 16) : 'Foxy',
     petStage: saved.petStage === undefined ? petStageFor(num(saved.correctTotal)) : Math.min(PET_STAGES.length - 1, num(saved.petStage)),
-    chest: {
-      week: isDay(saved.chest && saved.chest.week) ? saved.chest.week : null,
-      days: Array.isArray(saved.chest && saved.chest.days) ? [...new Set(saved.chest.days.filter(isDay))].slice(0, 7) : [],
-      opened: !!(saved.chest && saved.chest.opened === true),
+    ownedSuits: Array.isArray(saved.ownedSuits) ? [...new Set(saved.ownedSuits.filter((id) => SUITS_BY_ID[id]))] : [],
+    petSuit: SUITS_BY_ID[saved.petSuit] && Array.isArray(saved.ownedSuits) && saved.ownedSuits.includes(saved.petSuit) ? saved.petSuit : null,
+    // Lessons finished today (any game played to the end): unlocks the daily chest.
+    lessonsDay: isDay(saved.lessonsDay) ? saved.lessonsDay : null,
+    lessons: Math.min(999, num(saved.lessons)),
+    chestOpenedDay: isDay(saved.chestOpenedDay) ? saved.chestOpenedDay : null,
+    bonusChests: Math.min(99, num(saved.bonusChests)),
+    weekLessons: {
+      week: isDay(saved.weekLessons && saved.weekLessons.week) ? saved.weekLessons.week : null,
+      days: Array.isArray(saved.weekLessons && saved.weekLessons.days) ? [...new Set(saved.weekLessons.days.filter(isDay))].slice(0, 7) : [],
     },
+    megaOpenedWeek: isDay(saved.megaOpenedWeek) ? saved.megaOpenedWeek : null,
+    megaPendingWeek: isDay(saved.megaPendingWeek) ? saved.megaPendingWeek : null,
+    megaChestsOpened: num(saved.megaChestsOpened),
     chestsOpened: num(saved.chestsOpened),
     boss: {
       week: isDay(saved.boss && saved.boss.week) ? saved.boss.week : null,
@@ -330,18 +389,18 @@ function sanitizeProfile(saved) {
 }
 
 // Event progress: rewards claimed, rewards earned but not yet claimed, and today's exercises.
-function sanitizeEvent(e) {
+function sanitizeEvent(e, days) {
   if (!e || typeof e !== 'object') e = {};
   const num = (v) => Math.max(0, Math.floor(Number(v)) || 0);
   const isDay = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
-  const claimed = Math.min(EVENT_DAYS, num(e.claimed));
+  const claimed = Math.min(days, num(e.claimed));
   const won = {};
   for (const [day, emoji] of Object.entries(e.won && typeof e.won === 'object' ? e.won : {})) {
     if (Number(day) >= 1 && Number(day) <= claimed && MYSTERY_POOL.includes(emoji)) won[day] = emoji;
   }
   return {
     claimed,
-    unclaimed: Math.min(EVENT_DAYS - claimed, num(e.unclaimed)),
+    unclaimed: Math.min(days - claimed, num(e.unclaimed)),
     lastEarnedDay: isDay(e.lastEarnedDay) ? e.lastEarnedDay : null,
     roundsDay: isDay(e.roundsDay) ? e.roundsDay : null,
     rounds: Math.min(99, num(e.rounds)),
@@ -388,6 +447,7 @@ function renderAll() {
   renderLeaderboard();
   renderEvent();
   renderChest();
+  renderMegaChest();
   renderPet();
   renderBossCard();
   renderDailyCard();
@@ -496,7 +556,6 @@ function applyStreakFreezes() {
 
 // Called on the first correct answer each day. Does not save; the caller does.
 function registerPractice() {
-  markChestDay();                       // counts towards this week's Treasure Chest
   const day = today();
   if (profile.lastPlayDay === day) return;
   applyStreakFreezes();
@@ -542,36 +601,46 @@ function renderBadges() {
   }
 }
 
-/* ---------- 15-Day Reward Event ---------- */
+/* ---------- Events ---------- */
 
-const eventComplete = () => profile.event.claimed >= EVENT_DAYS;
-const roundsToday = () => (profile.event.roundsDay === today() ? profile.event.rounds : 0);
+const evState = (ev) => profile[ev.key];
+const eventComplete = (ev = ACTIVE_EVENT) => evState(ev).claimed >= ev.days;
+const roundsToday = () => (evState(ACTIVE_EVENT).roundsDay === today() ? evState(ACTIVE_EVENT).rounds : 0);
+const lessonsToday = () => (profile.lessonsDay === today() ? profile.lessons : 0);
 
-// Called whenever a round is finished (all questions, or the full Speed Round).
+// Called whenever a lesson is finished (all questions, or the full Speed Round).
 function recordExercise() {
-  const ev = profile.event;
   const day = today();
+  if (profile.lessonsDay !== day) { profile.lessonsDay = day; profile.lessons = 0; }
+  profile.lessons++;
+  markWeekLesson();                     // counts towards this week's Mega Chest
+  if (profile.lessons === 1 && profile.chestOpenedDay !== day) {
+    celebrate('🧰 Your daily Treasure Chest is ready! Open it in the Event tab.');
+  }
+  const ev = evState(ACTIVE_EVENT);
   if (ev.roundsDay !== day) { ev.roundsDay = day; ev.rounds = 0; }
   ev.rounds++;
-  const canEarn = ev.lastEarnedDay !== day && ev.claimed + ev.unclaimed < EVENT_DAYS;
+  const canEarn = ev.lastEarnedDay !== day && ev.claimed + ev.unclaimed < ACTIVE_EVENT.days;
   if (canEarn && ev.rounds >= EXERCISES_PER_DAY) {
     ev.unclaimed++;
     ev.lastEarnedDay = day;
     celebrate(`🎁 Day ${ev.claimed + ev.unclaimed} reward unlocked! Claim it in the Event tab.`);
   } else if (canEarn) {
     const left = EXERCISES_PER_DAY - ev.rounds;
-    celebrate(`${left} more exercise${left === 1 ? '' : 's'} today to unlock your event reward!`, { confetti: false });
+    celebrate(`${left} more lesson${left === 1 ? '' : 's'} today to unlock your event reward!`, { confetti: false });
   }
   saveProfile();
 }
 
-// What a reward looks like on the event track.
-function describeReward(day) {
-  const r = EVENT_REWARDS[day - 1];
+// What a reward looks like on an event track.
+function describeReward(ev, day) {
+  const r = ev.rewards[day - 1];
   if (r.type === 'freeze') return { icon: '❄️', text: r.amount === 1 ? 'Streak freeze' : `${r.amount} streak freezes` };
   if (r.type === 'points') return { icon: '🪙', text: `${r.amount} points` };
+  if (r.type === 'chest') return { icon: '🧰', text: r.amount === 1 ? 'Bonus chest' : `${r.amount} bonus chests` };
+  if (r.type === 'suit') { const s = SUITS_BY_ID[r.id]; return { icon: s.icon, text: s.name, rarity: s.rarity, tag: '🦊 Fox suit' }; }
   if (r.type === 'mystery') {
-    const won = profile.event.won[day];
+    const won = evState(ev).won[day];
     const item = won && EVENT_EMOJIS.find((e) => e.emoji === won);
     return item ? { icon: item.emoji, text: item.name, rarity: 'epic' } : { icon: '🎁', text: 'Mystery emoji', rarity: 'epic' };
   }
@@ -579,88 +648,182 @@ function describeReward(day) {
   return { icon: r.emoji, text: EVENT_EMOJIS.find((e) => e.emoji === r.emoji).name, rarity: 'ultra' };
 }
 
-function claimEventReward() {
-  const ev = profile.event;
-  if (ev.unclaimed <= 0 || eventComplete()) return;
-  const day = ev.claimed + 1;
-  const r = EVENT_REWARDS[day - 1];
-  let message;
+// Gives a reward. Returns a short message and what the prize screen should show.
+function grantReward(ev, day) {
+  const r = ev.rewards[day - 1];
   if (r.type === 'freeze') {
     profile.streakFreezes += r.amount;
-    message = `❄️ ${r.amount === 1 ? 'A streak freeze' : r.amount + ' streak freezes'}! If you miss a day, it keeps your streak safe.`;
-  } else if (r.type === 'points') {
+    return { message: `❄️ ${r.amount === 1 ? 'A streak freeze' : r.amount + ' streak freezes'}!`,
+      reveal: { icon: '❄️', name: r.amount === 1 ? 'Streak freeze' : `${r.amount} streak freezes`, note: 'If you miss a day, a freeze keeps your streak safe.' } };
+  }
+  if (r.type === 'points') {
     profile.points += r.amount;
-    message = `🪙 +${r.amount} points!`;
-  } else if (r.type === 'mystery') {
+    return { message: `🪙 +${r.amount} points!`, reveal: { icon: '🪙', name: `${r.amount} points` } };
+  }
+  if (r.type === 'chest') {
+    profile.bonusChests += r.amount;
+    return { message: `🧰 ${r.amount === 1 ? 'A bonus chest' : r.amount + ' bonus chests'}!`,
+      reveal: { icon: '🧰', name: r.amount === 1 ? 'Bonus chest' : `${r.amount} bonus chests`, note: 'Open it in the Treasure Chest below, any time you like!' } };
+  }
+  if (r.type === 'suit') {
+    const s = SUITS_BY_ID[r.id];
+    if (!profile.ownedSuits.includes(s.id)) profile.ownedSuits.push(s.id);
+    profile.petSuit = s.id;                       // dress the fox in it straight away
+    return { message: `🦊 ${profile.petName} got the ${s.name}!`,
+      reveal: { suit: s, name: s.name, rarity: s.rarity, note: `${profile.petName} is wearing it now! Change suits on the Play tab.` } };
+  }
+  if (r.type === 'mystery') {
     const choices = MYSTERY_POOL.filter((e) => !profile.ownedEmojis.includes(e));
-    if (choices.length) {
-      const emoji = choices[Math.floor(Math.random() * choices.length)];
-      const item = EVENT_EMOJIS.find((e) => e.emoji === emoji);
-      profile.ownedEmojis.push(emoji);
-      profile.selectedEmoji = emoji;
-      ev.won[day] = emoji;
-      message = `🎁 Mystery emoji: ${emoji} ${item.name}! (Epic — you can’t buy this one!)`;
-    } else {
-      profile.points += 500;                       // already owns them all
-      message = '🎁 You already have every mystery emoji, so here are 500 points!';
-    }
-  } else if (r.type === 'background') {
+    if (!choices.length) { profile.points += 500; return { message: '🎁 +500 points!', reveal: { icon: '🪙', name: '500 points' } }; }
+    const emoji = choices[Math.floor(Math.random() * choices.length)];
+    profile.ownedEmojis.push(emoji);
+    evState(ev).won[day] = emoji;
+    const item = EVENT_EMOJIS.find((e) => e.emoji === emoji);
+    return { message: `🎁 ${emoji} ${item.name}!`, reveal: { emoji, name: item.name, rarity: 'epic' } };
+  }
+  if (r.type === 'background') {
     const bg = BACKGROUNDS_BY_ID[r.id];
     if (!profile.ownedBackgrounds.includes(r.id)) profile.ownedBackgrounds.push(r.id);
-    profile.selectedBackground = r.id;
-    message = `🖼️ ${RARITIES_BY_ID[bg.rarity].name} background: ${bg.name}!`;
-  } else {
-    if (!profile.ownedEmojis.includes(r.emoji)) profile.ownedEmojis.push(r.emoji);
-    profile.selectedEmoji = r.emoji;
-    message = '🐆 ULTRA LEGENDARY Cheetah! You completed the 15-Day Reward Event!';
-    burstConfetti();                               // extra confetti for the big one
+    return { message: `🖼️ ${bg.name} background!`, reveal: { bg: bg.css, name: `${bg.name} background`, rarity: bg.rarity } };
   }
-  ev.claimed++;
-  ev.unclaimed--;
+  if (!profile.ownedEmojis.includes(r.emoji)) profile.ownedEmojis.push(r.emoji);
+  return { message: `${r.emoji} Ultra Legendary!`, reveal: { emoji: r.emoji, name: 'Cheetah', rarity: 'ultra' } };
+}
+
+function claimEventReward() {
+  const ev = ACTIVE_EVENT;
+  const st = evState(ev);
+  if (st.unclaimed <= 0 || eventComplete(ev)) return;
+  const day = st.claimed + 1;
+  const { reveal } = grantReward(ev, day);
+  st.claimed++;
+  st.unclaimed--;
   endTryOn();
   saveProfile();
   tone(1100, 0.15); setTimeout(() => tone(1400, 0.2), 120);
-  celebrate(message);
+  burstConfetti();
+  if (day === ev.days) burstConfetti();         // extra confetti for the last day
+  showReveal({ ...reveal, title: day === ev.days ? `🎉 Day ${day}: the grand prize!` : `🎁 Day ${day} reward` });
+}
+
+// When an event ends, any reward that was unlocked but not claimed is given automatically.
+function finishEndedEvents() {
+  let given = 0;
+  for (const ev of Object.values(EVENTS)) {
+    if (!ev.ended) continue;
+    const st = evState(ev);
+    while (st.unclaimed > 0 && st.claimed < ev.days) {
+      grantReward(ev, st.claimed + 1);
+      st.claimed++;
+      st.unclaimed--;
+      given++;
+    }
+  }
+  if (given) celebrate(`The 15-Day Reward Event has ended. We gave you your ${given === 1 ? 'last unclaimed reward' : given + ' unclaimed rewards'}!`);
+  return given > 0;
 }
 
 function renderEvent() {
-  const ev = profile.event;
+  const ev = ACTIVE_EVENT;
+  const st = evState(ev);
   const done = roundsToday();
   const status = $('eventStatus');
   const claimBtn = $('claimEventBtn');
-  claimBtn.hidden = ev.unclaimed <= 0;
-  claimBtn.textContent = `🎁 Claim Day ${ev.claimed + 1} reward`;
-  if (eventComplete()) {
-    status.textContent = '🎉 Event complete! You collected all 15 rewards, including the Ultra Legendary Cheetah.';
-  } else if (ev.unclaimed > 0) {
-    status.textContent = `Your Day ${ev.claimed + 1} reward is ready!`;
-  } else if (ev.lastEarnedDay === today()) {
-    status.textContent = `✅ Today’s reward is done. Come back tomorrow for Day ${ev.claimed + 1}!`;
+  claimBtn.hidden = st.unclaimed <= 0;
+  claimBtn.textContent = `🎁 Claim Day ${st.claimed + 1} reward`;
+  if (eventComplete(ev)) {
+    status.textContent = `🎉 Event complete! You collected all ${ev.days} rewards, including the Royal Dragon Suit.`;
+  } else if (st.unclaimed > 0) {
+    status.textContent = `Your Day ${st.claimed + 1} reward is ready!`;
+  } else if (st.lastEarnedDay === today()) {
+    status.textContent = `✅ Today’s reward is done. Come back tomorrow for Day ${st.claimed + 1}!`;
   } else {
-    status.textContent = `Finish ${EXERCISES_PER_DAY} exercises today (any game, all the way to the end) to unlock Day ${ev.claimed + 1}: ${done} of ${EXERCISES_PER_DAY} done.`;
+    status.textContent = `Finish ${EXERCISES_PER_DAY} lessons today (any game, all the way to the end) to unlock Day ${st.claimed + 1}: ${done} of ${EXERCISES_PER_DAY} done.`;
   }
-  $('eventPips').textContent = eventComplete() || ev.lastEarnedDay === today() ? '✅✅'
+  $('eventPips').textContent = eventComplete(ev) || st.lastEarnedDay === today() ? '✅✅'
     : '✅'.repeat(Math.min(done, EXERCISES_PER_DAY)) + '⬜'.repeat(Math.max(0, EXERCISES_PER_DAY - done));
-  $('eventFreezes').textContent = `❄️ Streak freezes: ${profile.streakFreezes}`;
-  updateTabDots();
+  $('eventFreezes').textContent = `❄️ Streak freezes: ${profile.streakFreezes} · 🦊 Fox suits: ${profile.ownedSuits.length} of ${FOX_SUITS.length}`;
 
   const track = $('eventTrack');
   track.textContent = '';
-  for (let day = 1; day <= EVENT_DAYS; day++) {
-    const d = describeReward(day);
-    const state = day <= ev.claimed ? 'claimed' : day <= ev.claimed + ev.unclaimed ? 'ready' : day === ev.claimed + 1 ? 'next' : 'locked';
+  for (let day = 1; day <= ev.days; day++) {
+    const d = describeReward(ev, day);
+    const state = day <= st.claimed ? 'claimed' : day <= st.claimed + st.unclaimed ? 'ready' : day === st.claimed + 1 ? 'next' : 'locked';
     const tile = document.createElement('div');
-    tile.className = `event-day ${state}` + (day === EVENT_DAYS ? ' finale' : '');
+    tile.className = `event-day ${state}` + (day === ev.days ? ' finale' : '') + (d.tag ? ' suit-day' : '');
     tile.setAttribute('aria-label', `Day ${day}: ${d.text}. ${{ claimed: 'Claimed', ready: 'Ready to claim', next: 'Next reward', locked: 'Locked' }[state]}`);
     const label = document.createElement('small'); label.textContent = 'Day ' + day;
     const icon = document.createElement('span'); icon.className = 'event-icon';
     if (d.bg) { icon.classList.add('event-swatch'); icon.style.background = d.bg; } else icon.textContent = d.icon;
     const text = document.createElement('strong'); text.textContent = d.text;
     tile.append(label, icon, text);
+    if (d.tag) { const tag = document.createElement('small'); tag.className = 'event-tag'; tag.textContent = d.tag; tile.appendChild(tag); }
     if (d.rarity) { const chip = document.createElement('span'); chip.className = `rarity-chip ${d.rarity}`; chip.textContent = RARITIES_BY_ID[d.rarity].name; tile.appendChild(chip); }
     if (state === 'claimed') { const tick = document.createElement('span'); tick.className = 'event-tick'; tick.textContent = '✓'; tile.appendChild(tick); }
     track.appendChild(tile);
   }
+  updateTabDots();
+}
+
+/* ---------- Prize screen ("You got…") ---------- */
+
+let revealUse = null;
+
+// The picture for one prize: an emoji, an icon, a background swatch or a suited fox.
+function fillPrizeVisual(visual, prize, foxSize) {
+  if (prize.suit) visual.appendChild(foxFigure(prize.suit, foxSize));
+  else if (prize.bg) { visual.classList.add('reveal-swatch'); visual.style.background = prize.bg; setEmoji(visual, profile.selectedEmoji); }
+  else if (prize.emoji) setEmoji(visual, prize.emoji);
+  else visual.textContent = prize.icon;
+}
+
+// Shows prizes big in the middle of the screen.
+// prize: { emoji | icon | bg | suit, name, rarity, note, title, useLabel, onUse }
+// or several at once: { title, items: [{ emoji | icon | bg, name, rarity }, …] } — they pop in one by one.
+function showReveal(prize) {
+  const visual = $('revealVisual');
+  visual.textContent = '';
+  visual.className = 'reveal-visual';
+  visual.removeAttribute('style');
+  const many = Array.isArray(prize.items);
+  if (many) {
+    visual.classList.add('reveal-many');
+    prize.items.forEach((item, i) => {
+      const tile = document.createElement('div');
+      tile.className = 'reveal-item' + (item.rarity ? ` rarity-${item.rarity}` : '');
+      tile.style.animationDelay = i * 0.35 + 's';
+      const pic = document.createElement('div'); pic.className = 'reveal-item-pic';
+      fillPrizeVisual(pic, item, 3);
+      const name = document.createElement('strong'); name.textContent = item.name;
+      tile.append(pic, name);
+      if (item.rarity) { const c = document.createElement('span'); c.className = `rarity-chip ${item.rarity}`; c.textContent = RARITIES_BY_ID[item.rarity].name; tile.appendChild(c); }
+      visual.appendChild(tile);
+    });
+  } else {
+    fillPrizeVisual(visual, prize, 7);
+  }
+  $('revealTitle').textContent = prize.title || 'You got…';
+  $('revealName').textContent = many ? '' : prize.name;
+  $('revealName').hidden = many;
+  const chip = $('revealRarity');
+  chip.hidden = many || !prize.rarity;
+  if (!many && prize.rarity) { chip.className = `rarity-chip ${prize.rarity}`; chip.textContent = RARITIES_BY_ID[prize.rarity].name; }
+  $('revealNote').textContent = prize.note || '';
+  revealUse = prize.onUse || null;
+  $('revealUseBtn').hidden = !revealUse;
+  $('revealUseBtn').textContent = prize.useLabel || 'Use it now';
+  $('prizeReveal').hidden = false;
+  $('revealCloseBtn').focus({ preventScroll: true });
+}
+
+function closeReveal() {
+  $('prizeReveal').hidden = true;
+  revealUse = null;
+}
+
+function useRevealedPrize() {
+  if (revealUse) revealUse();
+  closeReveal();
 }
 
 /* ---------- Tabs: Play · Shop · Friends · Event ---------- */
@@ -682,35 +845,20 @@ function showPage(name) {
 
 // The dot on the Event tab shows when a reward or the chest is waiting.
 function updateTabDots() {
-  $('eventDot').hidden = !(profile.event.unclaimed > 0 || chestReady());
+  $('eventDot').hidden = !(evState(ACTIVE_EVENT).unclaimed > 0 || chestReady() || !!megaReadyWeek());
 }
 
-/* ---------- Weekly Treasure Chest ---------- */
+/* ---------- Daily Treasure Chest ---------- */
 
-// A new week starts a new chest.
-function syncChestWeek() {
-  const week = weekStart();
-  if (profile.chest.week !== week) profile.chest = { week, days: [], opened: false };
-}
-const chestReady = () => { syncChestWeek(); return profile.chest.days.length >= CHEST_DAYS_NEEDED && !profile.chest.opened; };
-
-// Called on every correct answer; counts each day once.
-function markChestDay() {
-  syncChestWeek();
-  const day = today();
-  if (profile.chest.days.includes(day)) return;
-  profile.chest.days.push(day);
-  if (profile.chest.days.length === CHEST_DAYS_NEEDED && !profile.chest.opened) {
-    celebrate('🧰 Your Weekly Treasure Chest is ready! Open it in the Event tab.');
-  }
-}
+const dailyChestReady = () => lessonsToday() >= 1 && profile.chestOpenedDay !== today();
+const chestReady = () => dailyChestReady() || profile.bonusChests > 0;
 
 // Every prize is good and never a duplicate emoji.
 function rollChestPrize() {
   const unowned = CHEST_EMOJIS.filter((e) => !profile.ownedEmojis.includes(e.emoji));
   const roll = Math.random();
-  if (unowned.length && roll < 0.5) return { type: 'emoji', item: unowned[Math.floor(Math.random() * unowned.length)] };
-  if (roll < 0.8) return { type: 'points', amount: 250 + 50 * Math.floor(Math.random() * 6) };   // 250–500
+  if (unowned.length && roll < 0.3) return { type: 'emoji', item: unowned[Math.floor(Math.random() * unowned.length)] };
+  if (roll < 0.85) return { type: 'points', amount: 100 + 25 * Math.floor(Math.random() * 7) };   // 100–250
   return { type: 'freeze' };
 }
 
@@ -718,55 +866,168 @@ let chestOpening = false;
 function openChest() {
   if (!chestReady() || chestOpening) return;
   chestOpening = true;
+  const usingDaily = dailyChestReady();
   $('openChestBtn').disabled = true;
   $('chestIcon').classList.add('opening');
   tone(520, 0.12); setTimeout(() => tone(660, 0.12), 250); setTimeout(() => tone(820, 0.12), 500);
   setTimeout(() => {
     const prize = rollChestPrize();
-    let message;
+    let reveal;
     if (prize.type === 'emoji') {
-      profile.ownedEmojis.push(prize.item.emoji);
-      profile.selectedEmoji = prize.item.emoji;
-      message = `🧰 Treasure! ${prize.item.emoji} ${prize.item.name} (Super Rare, chest-only)!`;
+      const emoji = prize.item.emoji;
+      profile.ownedEmojis.push(emoji);
+      reveal = { emoji, name: prize.item.name, rarity: 'super', note: 'A chest-only emoji! You can’t buy this one.',
+        useLabel: `Use ${emoji} now`, onUse: () => { profile.selectedEmoji = emoji; saveProfile(); } };
     } else if (prize.type === 'points') {
       profile.points += prize.amount;
-      message = `🧰 Treasure! +${prize.amount} points!`;
+      reveal = { icon: '🪙', name: `${prize.amount} points` };
     } else {
       profile.streakFreezes += 1;
-      message = '🧰 Treasure! A ❄️ streak freeze to keep your streak safe!';
+      reveal = { icon: '❄️', name: 'Streak freeze', note: 'If you miss a day, it keeps your streak safe.' };
     }
-    profile.chest.opened = true;
+    if (usingDaily) profile.chestOpenedDay = today(); else profile.bonusChests--;
     profile.chestsOpened++;
     chestOpening = false;
     $('chestIcon').classList.remove('opening');
     $('openChestBtn').disabled = false;
     saveProfile();
-    celebrate(message);
+    burstConfetti();
+    tone(1180, 0.2);
+    showReveal({ ...reveal, title: '🧰 You opened the chest and got…' });
   }, 900);
 }
 
 function renderChest() {
-  syncChestWeek();
-  const c = profile.chest;
-  const n = c.days.length;
+  const n = profile.bonusChests;
+  const bonusText = n ? ` You also have ${n} bonus chest${n === 1 ? '' : 's'} from the event.` : '';
   $('openChestBtn').hidden = !chestReady();
+  $('openChestBtn').textContent = dailyChestReady() ? '🧰 Open today’s chest!' : `🧰 Open a bonus chest (${n} left)`;
   $('chestIcon').classList.toggle('ready', chestReady());
-  $('chestStatus').textContent = c.opened ? '✅ You opened this week’s chest! A new one arrives on Monday.'
-    : n >= CHEST_DAYS_NEEDED ? '🎉 You practised on 4 days this week. Open your chest!'
-    : `Practise on ${CHEST_DAYS_NEEDED - n} more day${CHEST_DAYS_NEEDED - n === 1 ? '' : 's'} this week to open it (${n} of ${CHEST_DAYS_NEEDED} so far).`;
-  const days = $('chestDays');
+  $('chestStatus').textContent = (dailyChestReady() ? '🎉 You finished a lesson today. Open your chest!'
+    : profile.chestOpenedDay === today() ? '✅ You opened today’s chest! Come back tomorrow for another.'
+    : 'Finish 1 lesson today (any game, played to the end) to unlock today’s chest.') + bonusText;
+  const owned = CHEST_EMOJIS.filter((e) => profile.ownedEmojis.includes(e.emoji)).length;
+  $('chestPrizes').textContent = `Possible prizes: 🪙 100–250 points · ❄️ a streak freeze · a chest-only emoji ${CHEST_EMOJIS.map((e) => e.emoji).join(' ')} (you have ${owned} of ${CHEST_EMOJIS.length}). One free chest a day. Chests can’t be bought.`;
+  updateTabDots();
+}
+
+/* ---------- Weekly Mega Chest ---------- */
+// Finish lessons on MEGA_DAYS_NEEDED different days in a week (Monday–Sunday) and a
+// Mega Chest opens on Sunday. If Sunday is missed, it waits during the next week.
+// It holds 5 prizes and always includes at least one new emoji.
+
+const isSunday = () => new Date(Date.now()).getDay() === 0;
+
+// A new week: remember if last week earned a chest that wasn't opened.
+function syncWeekLessons() {
+  const week = weekStart();
+  const wl = profile.weekLessons;
+  if (wl.week === week) return;
+  if (wl.week && wl.days.length >= MEGA_DAYS_NEEDED && profile.megaOpenedWeek !== wl.week) profile.megaPendingWeek = wl.week;
+  profile.weekLessons = { week, days: [] };
+}
+
+function markWeekLesson() {
+  syncWeekLessons();
+  const day = today();
+  if (!profile.weekLessons.days.includes(day)) profile.weekLessons.days.push(day);
+}
+
+// The week whose Mega Chest can be opened now, or null.
+function megaReadyWeek() {
+  syncWeekLessons();
+  if (profile.megaPendingWeek && profile.megaPendingWeek !== profile.megaOpenedWeek) return profile.megaPendingWeek;
+  const wl = profile.weekLessons;
+  return isSunday() && wl.days.length >= MEGA_DAYS_NEEDED && profile.megaOpenedWeek !== wl.week ? wl.week : null;
+}
+
+// Five prizes; the first is always an emoji the player doesn't have yet. No duplicates.
+function rollMegaChest() {
+  const ownedEmojis = new Set(profile.ownedEmojis);
+  const ownedBgs = new Set(profile.ownedBackgrounds);
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  const newEmoji = () => {
+    const chestOnly = CHEST_EMOJIS.filter((e) => !ownedEmojis.has(e.emoji));
+    const shop = SHOP_EMOJIS.filter((e) => e.price < 16000 && !ownedEmojis.has(e.emoji));   // up to Epic
+    const pool = chestOnly.length ? chestOnly : shop;
+    if (!pool.length) return null;
+    const e = pick(pool); ownedEmojis.add(e.emoji); return e;
+  };
+  const points = () => ({ type: 'points', amount: 150 + 50 * Math.floor(Math.random() * 6) });   // 150–400
+  const first = newEmoji();
+  const items = [first ? { type: 'emoji', item: first } : { type: 'points', amount: 1000 }];
+  let freezes = 0, chests = 0;
+  while (items.length < 5) {
+    const r = Math.random();
+    if (r < 0.45) items.push(points());
+    else if (r < 0.6 && !freezes) { items.push({ type: 'freeze' }); freezes++; }
+    else if (r < 0.75 && !chests) { items.push({ type: 'chest' }); chests++; }
+    else if (r < 0.9) {
+      const bgs = SHOP_BACKGROUNDS.filter((b) => b.price > 0 && b.price <= 12000 && !ownedBgs.has(b.id));
+      if (bgs.length) { const b = pick(bgs); ownedBgs.add(b.id); items.push({ type: 'background', item: b }); } else items.push(points());
+    } else {
+      const e = newEmoji();
+      items.push(e ? { type: 'emoji', item: e } : points());
+    }
+  }
+  return items;
+}
+
+let megaOpening = false;
+function openMegaChest() {
+  const week = megaReadyWeek();
+  if (!week || megaOpening) return;
+  megaOpening = true;
+  $('openMegaBtn').disabled = true;
+  $('megaIcon').classList.add('opening');
+  tone(440, 0.12); setTimeout(() => tone(554, 0.12), 220); setTimeout(() => tone(659, 0.12), 440); setTimeout(() => tone(880, 0.2), 660);
+  setTimeout(() => {
+    const items = rollMegaChest();
+    const shown = items.map((p) => {
+      if (p.type === 'emoji') { profile.ownedEmojis.push(p.item.emoji); return { emoji: p.item.emoji, name: p.item.name, rarity: rarityOf(p.item).id }; }
+      if (p.type === 'points') { profile.points += p.amount; return { icon: '🪙', name: `${p.amount} points` }; }
+      if (p.type === 'freeze') { profile.streakFreezes++; return { icon: '❄️', name: 'Streak freeze' }; }
+      if (p.type === 'chest') { profile.bonusChests++; return { icon: '🧰', name: 'Bonus chest' }; }
+      profile.ownedBackgrounds.push(p.item.id);
+      return { bg: p.item.css, name: `${p.item.name} background`, rarity: rarityOf(p.item).id };
+    });
+    profile.megaOpenedWeek = week;
+    if (profile.megaPendingWeek === week) profile.megaPendingWeek = null;
+    profile.megaChestsOpened++;
+    megaOpening = false;
+    $('megaIcon').classList.remove('opening');
+    $('openMegaBtn').disabled = false;
+    saveProfile();
+    burstConfetti(); burstConfetti();
+    const firstEmoji = items[0].type === 'emoji' ? items[0].item.emoji : null;
+    showReveal({
+      title: '🎁 Mega Chest! You got 5 prizes:', items: shown,
+      ...(firstEmoji ? { useLabel: `Use ${firstEmoji === EMI_EMOJI ? 'Emi' : firstEmoji} now`, onUse: () => { profile.selectedEmoji = firstEmoji; saveProfile(); } } : {}),
+    });
+  }, 1200);
+}
+
+function renderMegaChest() {
+  const ready = megaReadyWeek();
+  const wl = profile.weekLessons;
+  const n = wl.days.length;
+  $('openMegaBtn').hidden = !ready;
+  $('megaIcon').classList.toggle('ready', !!ready);
+  $('megaStatus').textContent = ready
+    ? (ready === wl.week ? '🎉 It’s Sunday and you practised on 3 days this week. Open your Mega Chest!' : '🎉 You earned a Mega Chest last week. Open it!')
+    : profile.megaOpenedWeek === wl.week ? '✅ You opened this week’s Mega Chest! A new week starts on Monday.'
+    : n >= MEGA_DAYS_NEEDED ? '⭐ You practised on 3 days this week. Your Mega Chest opens on Sunday!'
+    : `Finish lessons on ${MEGA_DAYS_NEEDED - n} more day${MEGA_DAYS_NEEDED - n === 1 ? '' : 's'} this week (${n} of ${MEGA_DAYS_NEEDED}). The Mega Chest opens on Sunday!`;
+  const days = $('megaDays');
   days.textContent = '';
-  const [y, m, d] = c.week.split('-').map(Number);
+  const [y, m, d] = wl.week.split('-').map(Number);
   ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((letter, i) => {
     const date = dayString(new Date(y, m - 1, d + i));
     const pip = document.createElement('span');
-    pip.className = 'chest-day' + (c.days.includes(date) ? ' done' : '') + (date === today() ? ' today' : '');
-    pip.textContent = c.days.includes(date) ? '✓' : letter;
+    pip.className = 'chest-day' + (wl.days.includes(date) ? ' done' : '') + (date === today() ? ' today' : '') + (i === 6 ? ' sunday' : '');
+    pip.textContent = wl.days.includes(date) ? '✓' : letter;
     days.appendChild(pip);
   });
-  const owned = CHEST_EMOJIS.filter((e) => profile.ownedEmojis.includes(e.emoji)).length;
-  $('chestPrizes').textContent = `Possible prizes: 🪙 250–500 points · ❄️ a streak freeze · a chest-only emoji ${CHEST_EMOJIS.map((e) => e.emoji).join(' ')} (you have ${owned} of ${CHEST_EMOJIS.length}). One chest per week. Chests can’t be bought.`;
-  updateTabDots();
 }
 
 /* ---------- Pet fox ---------- */
@@ -781,13 +1042,30 @@ function checkPetGrowth() {
   }
 }
 
+// A picture of the happy fox wearing a suit (or no suit), sized in rem.
+function foxFigure(suit, size) {
+  const fig = document.createElement('span');
+  fig.className = 'fox-figure';
+  fig.style.fontSize = size / 4.6 + 'rem';        // hat and prop scale with the fox
+  if (suit) fig.style.background = suit.bg;
+  const img = document.createElement('img'); img.src = 'img/fox-happy.png'; img.alt = ''; img.style.width = size + 'rem';
+  const hat = document.createElement('span'); hat.className = 'fox-hat'; hat.textContent = suit ? suit.hat : '';
+  const prop = document.createElement('span'); prop.className = 'fox-prop'; prop.textContent = suit ? suit.prop : '';
+  fig.append(img, hat, prop);
+  return fig;
+}
+
 function renderPet(mood) {
   const stage = PET_STAGES[profile.petStage];
   const next = PET_STAGES[profile.petStage + 1];
-  $('petBody').style.fontSize = stage.size + 'rem';
-  $('petAccessory').textContent = stage.accessory;
+  const suit = SUITS_BY_ID[profile.petSuit];
+  $('petBody').style.width = stage.size * 1.15 + 'rem';
+  $('petAccessory').textContent = suit ? suit.hat : stage.accessory;
+  $('petProp').textContent = suit ? suit.prop : '';
+  $('petBtn').style.background = suit ? suit.bg : '';
   $('petBtn').classList.toggle('legendary', profile.petStage === PET_STAGES.length - 1);
-  $('petTitle').textContent = `${profile.petName} the ${stage.name}`;
+  $('petTitle').textContent = `${profile.petName} the ${stage.name}` + (suit ? ` (${suit.name})` : '');
+  renderWardrobe();
   $('petMood').textContent = mood || (profile.lastPlayDay === today()
     ? `😊 ${profile.petName} is so happy you practised today!`
     : `🦊 ${profile.petName} can’t wait to practise with you today!`);
@@ -801,6 +1079,31 @@ function renderPet(mood) {
     $('petNext').textContent = `${profile.petName} is fully grown: a Legendary Fox! ✨`;
   }
   if (document.activeElement !== $('petNameInput')) $('petNameInput').value = profile.petName;
+}
+
+// Suit buttons under the pet: "No suit" plus every suit (locked ones are won in the event).
+function renderWardrobe() {
+  const box = $('wardrobe');
+  box.textContent = '';
+  const make = (suit) => {
+    const owned = !suit || profile.ownedSuits.includes(suit.id);
+    const on = (suit ? suit.id : null) === profile.petSuit;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'suit-btn' + (on ? ' on' : '') + (owned ? '' : ' locked');
+    btn.textContent = suit ? (owned ? `${suit.icon} ${suit.name}` : `🔒 ${suit.name}`) : '🦊 No suit';
+    btn.setAttribute('aria-pressed', String(on));
+    if (owned) {
+      btn.addEventListener('click', () => { profile.petSuit = suit ? suit.id : null; saveProfile(); renderPet(suit ? `✨ ${profile.petName} loves the ${suit.name}!` : undefined); });
+    } else {
+      btn.disabled = true;
+      btn.title = 'Win it in the Fox Fashion Event';
+      btn.setAttribute('aria-label', `${suit.name}: win it in the Fox Fashion Event`);
+    }
+    box.appendChild(btn);
+  };
+  make(null);
+  FOX_SUITS.forEach(make);
 }
 
 function petTheFox() {
@@ -910,7 +1213,7 @@ function renderChallengeBoard() {
   rows.forEach((r, i) => {
     const row = document.createElement('div'); row.className = 'leader-row' + (r.isYou ? ' you' : '');
     const place = document.createElement('span'); place.className = 'rank place-' + (i + 1); place.textContent = i + 1 + (['st', 'nd', 'rd'][i] || 'th');
-    const face = document.createElement('span'); face.className = 'face'; face.textContent = r.emoji; face.style.background = backgroundCss(r.bg);
+    const face = document.createElement('span'); face.className = 'face'; setEmoji(face, r.emoji); face.style.background = backgroundCss(r.bg);
     const details = document.createElement('div'); details.className = 'person';
     const name = document.createElement('strong'); name.textContent = r.name;
     const sub = document.createElement('small'); sub.textContent = `${r.time.toFixed(1)} seconds`;
@@ -1048,19 +1351,19 @@ function renderStats() {
 // a name, a price, and a way to draw its preview.
 const SHOPS = {
   emoji: {
-    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...EMOJI_CATALOG, ...SPECIAL_EMOJIS],
+    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...SHOP_EMOJIS, ...SPECIAL_EMOJIS],
     key: (item) => item.emoji,
     label: (item) => item.name,
     owned: () => profile.ownedEmojis,
     selected: () => profile.selectedEmoji,
     select: (key) => { profile.selectedEmoji = key; },
     preview(item) {
-      const em = document.createElement('span'); em.className = 'shop-emoji'; em.textContent = item.emoji;
+      const em = document.createElement('span'); em.className = 'shop-emoji'; setEmoji(em, item.emoji);
       return em;
     },
   },
   bg: {
-    items: () => [...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS],
+    items: () => SHOP_BACKGROUNDS,
     key: (item) => item.id,
     label: (item) => item.name + ' background',
     owned: () => profile.ownedBackgrounds,
@@ -1070,7 +1373,7 @@ const SHOPS = {
       const swatch = document.createElement('span');
       swatch.className = 'bg-swatch';
       swatch.style.background = item.css;
-      swatch.textContent = shownEmoji();   // shows how it will look
+      setEmoji(swatch, shownEmoji());   // shows how it will look
       return swatch;
     },
   },
@@ -1080,7 +1383,7 @@ const backgroundCss = (id) => (BACKGROUNDS_BY_ID[id] || BACKGROUNDS_BY_ID[DEFAUL
 
 function renderProfile() {
   $('points').textContent = profile.points.toLocaleString();
-  $('profileAvatar').textContent = shownEmoji();
+  setEmoji($('profileAvatar'), shownEmoji());
   $('profileAvatar').style.background = backgroundCss(shownBackground());
   $('profileAvatar').classList.toggle('trying', !!tryOn);
   $('tryOnNote').hidden = !tryOn;
@@ -1128,7 +1431,7 @@ function renderShop(kind, grid) {
     card.className = `emoji-item rarity-${rarity.id}` + (chosen ? ' chosen' : '');
     const chip = document.createElement('span'); chip.className = 'rarity-chip'; chip.textContent = rarity.name;
     const name = document.createElement('strong'); name.textContent = item.name;
-    const price = document.createElement('small'); price.textContent = item.source === 'chest' ? '🧰 Treasure Chest only' : item.event ? '🎁 Event only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
+    const price = document.createElement('small'); price.textContent = item.source === 'chest' ? '🧰 Treasure Chest only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
     btn.type = 'button';
     if (owned) {
@@ -1349,7 +1652,7 @@ function renderLeaderboard() {
     const place = document.createElement('span'); place.className = 'rank place-' + (index + 1);
     place.textContent = index + 1 + (['st', 'nd', 'rd'][index] || 'th');
     place.setAttribute('aria-label', `Place ${index + 1}`);
-    const face = document.createElement('span'); face.className = 'face'; face.textContent = person.emoji;
+    const face = document.createElement('span'); face.className = 'face'; setEmoji(face, person.emoji);
     face.style.background = backgroundCss(person.bg);
     const details = document.createElement('div'); details.className = 'person';
     const name = document.createElement('strong'); name.textContent = person.name + (person.isYou ? ' (You)' : '');
@@ -1801,8 +2104,12 @@ function init() {
     target.focus({ preventScroll: true });   // keyboard and screen-reader users land there too
   });
   $('claimEventBtn').addEventListener('click', claimEventReward);
+  $('revealCloseBtn').addEventListener('click', closeReveal);
+  $('revealUseBtn').addEventListener('click', useRevealedPrize);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('prizeReveal').hidden) closeReveal(); });
   document.querySelectorAll('.tabbar .tab').forEach((tab) => tab.addEventListener('click', () => showPage(tab.dataset.page)));
   $('openChestBtn').addEventListener('click', openChest);
+  $('openMegaBtn').addEventListener('click', openMegaChest);
   $('petBtn').addEventListener('click', petTheFox);
   $('petNameBtn').addEventListener('click', savePetName);
   $('petNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') savePetName(); });
@@ -1834,6 +2141,7 @@ function init() {
   $('profileName').value = profile.name;
   $('storageWarning').hidden = storage.ok;
   applyStreakFreezes();                  // a missed day? use a freeze if there is one
+  finishEndedEvents();                   // give out any unclaimed rewards from ended events
   storage.write(PROFILE_KEY, profile);   // keeps the new player id
   renderAll();
 
@@ -1844,7 +2152,7 @@ function init() {
 }
 
 // Exposed for automated tests.
-window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENT_REWARDS,
+window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENTS, FOX_SUITS, EMI_EMOJI, SHOP_EMOJIS, SHOP_BACKGROUNDS, rollMegaChest,
   CHEST_EMOJIS, PET_STAGES, BOSSES, BOSS_HP, dailyQuestions, showPage };
 
 init();
