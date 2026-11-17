@@ -373,6 +373,12 @@ function sanitizeProfile(saved) {
     megaOpenedWeek: isDay(saved.megaOpenedWeek) ? saved.megaOpenedWeek : null,
     megaPendingWeek: isDay(saved.megaPendingWeek) ? saved.megaPendingWeek : null,
     megaChestsOpened: num(saved.megaChestsOpened),
+    // Online friends: whether this player joined, and their anonymous sign-in (kept on this device).
+    online: {
+      joined: !!(saved.online && saved.online.joined === true),
+      uid: saved.online && typeof saved.online.uid === 'string' && /^[a-zA-Z0-9]{1,128}$/.test(saved.online.uid) ? saved.online.uid : null,
+      refreshToken: saved.online && typeof saved.online.refreshToken === 'string' ? saved.online.refreshToken.slice(0, 2000) : null,
+    },
     chestsOpened: num(saved.chestsOpened),
     boss: {
       week: isDay(saved.boss && saved.boss.week) ? saved.boss.week : null,
@@ -427,6 +433,10 @@ function sanitizeFriend(f) {
     chTime: Math.min(9999, Math.max(0, Number(f.chTime) || 0)),
     points: Math.min(10_000_000, Math.max(0, Math.floor(Number(f.points)))),
     updated: Number.isNaN(Date.parse(f.updated)) ? new Date().toISOString() : f.updated,
+    // Online friends update by themselves; 'gone' means they left online friends.
+    uid: typeof f.uid === 'string' && /^[a-zA-Z0-9]{1,128}$/.test(f.uid) ? f.uid : null,
+    online: f.online === true,
+    gone: f.gone === true,
   };
 }
 const sanitizeFriends = (list) => (Array.isArray(list) ? list.map(sanitizeFriend).filter(Boolean) : []);
@@ -439,6 +449,7 @@ function saveProfile() {
   checkBadges();
   storage.write(PROFILE_KEY, profile);
   renderAll();
+  schedulePush();                        // online friends see the change (if joined)
 }
 
 function renderAll() {
@@ -448,6 +459,7 @@ function renderAll() {
   renderEvent();
   renderChest();
   renderMegaChest();
+  renderOnline();
   renderPet();
   renderBossCard();
   renderDailyCard();
@@ -841,6 +853,7 @@ function showPage(name) {
     tab.tabIndex = p === name ? 0 : -1;
   }
   window.scrollTo({ top: 0 });
+  if (name === 'friends') refreshOnlineFriends().catch(() => {});   // online friends update when you look
 }
 
 // The dot on the Event tab shows when a reward or the chest is waiting.
@@ -1666,7 +1679,9 @@ function renderLeaderboard() {
     const streakLine = document.createElement('span'); streakLine.className = 'leader-streak';
     streakLine.textContent = friendStreakText(person);
     const note = document.createElement('small');
-    note.textContent = (person.isYou ? 'You · ' : 'From their code on ' + new Date(person.updated).toLocaleDateString() + ' · ') + person.points.toLocaleString() + ' pts';
+    note.textContent = (person.isYou ? 'You · '
+      : person.online ? (person.gone ? '🌐 Left online friends · ' : '🌐 Updates by itself · ')
+      : 'From their code on ' + new Date(person.updated).toLocaleDateString() + ' · ') + person.points.toLocaleString() + ' pts';
     details.append(name, rankLine, streakLine, note);
     const medal = document.createElement('span'); medal.className = 'score';
     if (ranked) medal.appendChild(medalImg(person.rank, 40)); else medal.textContent = '—';
@@ -1679,6 +1694,248 @@ function renderLeaderboard() {
     }
     box.appendChild(row);
   });
+}
+
+/* ---------- Online friends (Firebase) ---------- */
+// Optional. A child who joins gets an online profile (nickname, emoji, points, league,
+// streak, challenge score) that friends can find by name. Friends added online update
+// by themselves. Uses Firebase's web APIs directly (anonymous sign-in + Firestore).
+// Nothing happens until a grown-up has filled in web/online-config.js.
+
+const ONLINE = window.EMI_ONLINE || {};
+const onlineConfigured = () => !!(ONLINE.apiKey && ONLINE.projectId);
+const onlineJoined = () => onlineConfigured() && profile.online.joined && !!profile.online.uid;
+const fsBase = () => `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(ONLINE.projectId)}/databases/(default)/documents`;
+const playerTag = (uid) => (uid || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
+
+let idToken = null;
+let idTokenExpires = 0;
+
+// Signs in (anonymously, no email or password) and returns a fresh sign-in token.
+async function authToken() {
+  if (idToken && Date.now() < idTokenExpires - 60_000) return idToken;
+  const o = profile.online;
+  let res, data;
+  if (o.refreshToken) {
+    res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(ONLINE.apiKey)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(o.refreshToken),
+    });
+    if (!res.ok) throw new Error('sign-in failed');
+    data = await res.json();
+    idToken = data.id_token; o.refreshToken = data.refresh_token; o.uid = data.user_id;
+    idTokenExpires = Date.now() + Number(data.expires_in) * 1000;
+  } else {
+    res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(ONLINE.apiKey)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true }),
+    });
+    if (!res.ok) throw new Error('sign-in failed');
+    data = await res.json();
+    idToken = data.idToken; o.refreshToken = data.refreshToken; o.uid = data.localId;
+    idTokenExpires = Date.now() + Number(data.expiresIn) * 1000;
+  }
+  storage.write(PROFILE_KEY, profile);
+  return idToken;
+}
+
+async function firestore(path, options = {}) {
+  const token = await authToken();
+  const res = await fetch(fsBase() + path, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('online request failed: ' + res.status);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// Firestore stores values with their type, e.g. { integerValue: "120" }.
+function toFirestore(obj) {
+  const fields = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === null || v === undefined) fields[k] = { nullValue: null };
+    else if (typeof v === 'string') fields[k] = k === 'updated' ? { timestampValue: v } : { stringValue: v };
+    else if (Number.isInteger(v)) fields[k] = { integerValue: String(v) };
+    else fields[k] = { doubleValue: v };
+  }
+  return { fields };
+}
+function fromFirestore(fields = {}) {
+  const out = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if ('stringValue' in v) out[k] = v.stringValue;
+    else if ('integerValue' in v) out[k] = Number(v.integerValue);
+    else if ('doubleValue' in v) out[k] = Number(v.doubleValue);
+    else if ('timestampValue' in v) out[k] = v.timestampValue;
+    else out[k] = null;
+  }
+  return out;
+}
+
+// Only these details ever go online.
+function myOnlineProfile() {
+  return {
+    name: profile.name, nameLower: profile.name.toLowerCase(), tag: playerTag(profile.online.uid),
+    emoji: profile.selectedEmoji, bg: profile.selectedBackground, points: profile.points,
+    rank: profile.bestRank, rankAvg: profile.bestRankAvg,
+    streak: currentDailyStreak(), streakDay: profile.lastPlayDay,
+    chDay: profile.challenge ? profile.challenge.day : null,
+    chScore: profile.challenge ? profile.challenge.score : 0,
+    chTime: profile.challenge ? profile.challenge.time : 0,
+    updated: new Date().toISOString(),
+  };
+}
+
+let pushTimer = null;
+// Sends this player's latest details online (a few seconds after a change, so changes are grouped).
+function schedulePush(delay = 3000) {
+  if (!onlineJoined()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushOnlineNow().catch(() => {}); }, delay);
+}
+async function pushOnlineNow() {
+  if (!onlineJoined() || !profile.name) return;
+  await firestore(`/players/${profile.online.uid}`, { method: 'PATCH', body: JSON.stringify(toFirestore(myOnlineProfile())) });
+}
+
+// A friend entry for the leaderboard, from an online profile.
+function onlineFriendEntry(uid, data) {
+  return sanitizeFriend({ ...data, id: 'online-' + uid, uid, online: true, updated: data.updated || new Date().toISOString() });
+}
+
+let lastFriendRefresh = 0;
+// Fetches every online friend's latest details.
+async function refreshOnlineFriends(force = false) {
+  const online = friends.filter((f) => f.online && f.uid);
+  if (!onlineJoined() || !online.length) return;
+  if (!force && Date.now() - lastFriendRefresh < 60_000) return;
+  lastFriendRefresh = Date.now();
+  const docs = online.map((f) => `projects/${ONLINE.projectId}/databases/(default)/documents/players/${f.uid}`);
+  const results = await firestore(':batchGet', { method: 'POST', body: JSON.stringify({ documents: docs }) });
+  for (const r of results || []) {
+    if (r.found) {
+      const uid = r.found.name.split('/').pop();
+      const i = friends.findIndex((f) => f.uid === uid);
+      if (i >= 0) friends[i] = onlineFriendEntry(uid, fromFirestore(r.found.fields));
+    } else if (r.missing) {
+      const uid = r.missing.split('/').pop();
+      const f = friends.find((x) => x.uid === uid);
+      if (f) f.gone = true;                       // they left online friends
+    }
+  }
+  saveFriends();
+}
+
+function showOnlineMessage(msg) { $('onlineMessage').textContent = msg; }
+
+// Joining and leaving take two taps.
+let pendingOnline = null;
+let pendingOnlineTimer = null;
+function armOnlineButton(btn, label) {
+  clearTimeout(pendingOnlineTimer);
+  pendingOnline = btn.id;
+  btn.textContent = label;
+  btn.classList.add('confirm-danger');
+  pendingOnlineTimer = setTimeout(() => { pendingOnline = null; renderOnline(); }, 6000);
+}
+
+async function joinOnline() {
+  if (!onlineConfigured() || onlineJoined()) return;
+  if (!profile.name) { showOnlineMessage('Choose a nickname first (in the Shop tab, under your character).'); return; }
+  if (pendingOnline !== 'joinOnlineBtn') { armOnlineButton($('joinOnlineBtn'), 'Tap again: my grown-up said yes'); return; }
+  pendingOnline = null;
+  showOnlineMessage('Joining…');
+  try {
+    await authToken();
+    profile.online.joined = true;
+    await pushOnlineNow();
+    saveProfile();
+    showOnlineMessage(`🎉 You’re online as ${profile.name} #${playerTag(profile.online.uid)}! Friends can now find you.`);
+  } catch {
+    profile.online.joined = false;
+    showOnlineMessage('Couldn’t connect to the internet. Please try again later.');
+  }
+  renderOnline();
+}
+
+async function leaveOnline() {
+  if (!onlineJoined()) return;
+  if (pendingOnline !== 'leaveOnlineBtn') { armOnlineButton($('leaveOnlineBtn'), 'Tap again to delete my online profile'); return; }
+  pendingOnline = null;
+  try {
+    await firestore(`/players/${profile.online.uid}`, { method: 'DELETE' });
+  } catch {
+    showOnlineMessage('Couldn’t reach the internet, so your online profile wasn’t deleted yet. Please try again later.');
+    renderOnline();
+    return;
+  }
+  profile.online = { joined: false, uid: null, refreshToken: null };
+  idToken = null;
+  saveProfile();
+  showOnlineMessage('Your online profile has been deleted. Friends can’t find you any more.');
+  renderOnline();
+}
+
+async function searchOnline() {
+  const q = $('onlineSearch').value.trim().toLowerCase();
+  const box = $('onlineResults');
+  box.textContent = '';
+  if (q.length < 2) { showOnlineMessage('Type at least 2 letters of your friend’s nickname.'); return; }
+  showOnlineMessage('Searching…');
+  let rows;
+  try {
+    rows = await firestore(':runQuery', {
+      method: 'POST',
+      body: JSON.stringify({ structuredQuery: {
+        from: [{ collectionId: 'players' }],
+        where: { compositeFilter: { op: 'AND', filters: [
+          { fieldFilter: { field: { fieldPath: 'nameLower' }, op: 'GREATER_THAN_OR_EQUAL', value: { stringValue: q } } },
+          { fieldFilter: { field: { fieldPath: 'nameLower' }, op: 'LESS_THAN', value: { stringValue: q + '' } } },
+        ] } },
+        orderBy: [{ field: { fieldPath: 'nameLower' } }],
+        limit: 10,
+      } }),
+    });
+  } catch {
+    showOnlineMessage('Couldn’t search right now. Check the internet and try again.');
+    return;
+  }
+  const found = (rows || []).filter((r) => r.document).map((r) => ({ uid: r.document.name.split('/').pop(), data: fromFirestore(r.document.fields) }))
+    .filter((r) => r.uid !== profile.online.uid);
+  showOnlineMessage(found.length ? `Found ${found.length}. Tap “Add” to add a friend.` : `Nobody called “${$('onlineSearch').value.trim()}” yet. Check the spelling, or ask your friend to join online friends.`);
+  for (const { uid, data } of found) {
+    const row = document.createElement('div'); row.className = 'leader-row';
+    const face = document.createElement('span'); face.className = 'face'; setEmoji(face, String(data.emoji || DEFAULT_EMOJI).slice(0, 16));
+    face.style.background = backgroundCss(data.bg);
+    const details = document.createElement('div'); details.className = 'person';
+    const name = document.createElement('strong'); name.textContent = `${String(data.name || 'Friend').slice(0, 20)} #${String(data.tag || playerTag(uid)).slice(0, 4)}`;
+    const sub = document.createElement('small');
+    sub.textContent = RANKS_BY_ID[data.rank] ? `${RANKS_BY_ID[data.rank].name} league` : 'Unranked';
+    details.append(name, sub);
+    const already = friends.some((f) => f.uid === uid);
+    const add = document.createElement('button'); add.type = 'button';
+    add.textContent = already ? 'Added ✓' : '➕ Add';
+    add.disabled = already;
+    add.setAttribute('aria-label', already ? `${data.name} is already your friend` : `Add ${data.name} #${data.tag || playerTag(uid)}`);
+    add.addEventListener('click', () => {
+      if (friends.some((f) => f.uid === uid)) return;
+      friends.push(onlineFriendEntry(uid, data));
+      saveFriends();
+      add.textContent = 'Added ✓'; add.disabled = true;
+      add.setAttribute('aria-label', `${data.name} is already your friend`);
+      celebrate(`👫 ${data.name} is now your friend! Their points and league will update by themselves.`, { confetti: false });
+    });
+    row.append(face, details, add);
+    box.appendChild(row);
+  }
+}
+
+function renderOnline() {
+  const configured = onlineConfigured();
+  const joined = onlineJoined();
+  $('onlineNotReady').hidden = configured;
+  $('onlineJoin').hidden = !configured || joined;
+  $('onlineJoined').hidden = !joined;
+  if (pendingOnline !== 'joinOnlineBtn') { $('joinOnlineBtn').textContent = '🌐 Join online friends'; $('joinOnlineBtn').classList.remove('confirm-danger'); }
+  if (pendingOnline !== 'leaveOnlineBtn') { $('leaveOnlineBtn').textContent = 'Leave online friends'; $('leaveOnlineBtn').classList.remove('confirm-danger'); }
+  if (joined) $('onlineName').textContent = `${profile.name || 'You'} #${playerTag(profile.online.uid)}`;
 }
 
 /* ---------- Questions ---------- */
@@ -2110,6 +2367,10 @@ function init() {
   document.querySelectorAll('.tabbar .tab').forEach((tab) => tab.addEventListener('click', () => showPage(tab.dataset.page)));
   $('openChestBtn').addEventListener('click', openChest);
   $('openMegaBtn').addEventListener('click', openMegaChest);
+  $('joinOnlineBtn').addEventListener('click', joinOnline);
+  $('leaveOnlineBtn').addEventListener('click', leaveOnline);
+  $('onlineSearchBtn').addEventListener('click', searchOnline);
+  $('onlineSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchOnline(); });
   $('petBtn').addEventListener('click', petTheFox);
   $('petNameBtn').addEventListener('click', savePetName);
   $('petNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') savePetName(); });
@@ -2142,6 +2403,10 @@ function init() {
   $('storageWarning').hidden = storage.ok;
   applyStreakFreezes();                  // a missed day? use a freeze if there is one
   finishEndedEvents();                   // give out any unclaimed rewards from ended events
+  if (onlineJoined()) {                  // online: send my latest details and fetch my friends'
+    schedulePush(500);
+    refreshOnlineFriends(true).catch(() => {});
+  }
   storage.write(PROFILE_KEY, profile);   // keeps the new player id
   renderAll();
 

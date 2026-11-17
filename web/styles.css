@@ -259,3 +259,11 @@ button:active{transform:scale(.97)}
 .reveal-item.rarity-epic{border-color:#ff9cc6}
 .reveal-card:has(.reveal-many){width:min(94vw,640px)}
 @keyframes reveal-pop{from{transform:scale(.5) rotate(-6deg);opacity:0}to{opacity:1}}
+
+/* --- Online friends --- */
+.online-section{background:linear-gradient(135deg,#fff,#eef7ff)}
+.online-warning{background:#fff8e1;border:2px solid #ffe08a;border-radius:14px;padding:12px 14px;line-height:1.5;margin:6px 0 4px}
+.online-me{font-weight:800;margin:4px 0}
+.online-results .leader-row button{background:var(--purple);color:#fff;padding:8px 12px}
+.online-results .leader-row button:disabled{background:#d9f8ec;color:#17694f}
+#joinOnlineBtn.confirm-danger,#leaveOnlineBtn.confirm-danger{background:#ffe0e8;color:#8a2349}

@@ -53,7 +53,7 @@ This matters: Safari can delete saved progress for websites that haven't been vi
 
 - **Saved on the device only:** nickname, points, stars, correct answers, best streak, owned emojis and backgrounds, best rank, tricky facts, day streak, badges, friends list. Nothing is sent to a server.
 - **Friend codes** contain only the nickname, chosen emoji and background, best rank and rank time, day streak, points and a random player ID. Friends' scores are snapshots, so they update only when a friend sends a new code. A code isn't tamper-proof: someone who knows how could edit it to show a different score.
-- A live leaderboard would need an online database (such as Supabase or Firebase). That's a later decision, because it would put children's nicknames and scores online.
+- **Online friends (optional, Firebase):** only for a child who taps “Join online friends” (it asks them to check with a grown-up first). Their nickname, a short tag (like #K2P7), emoji, background, points, best league and time, day streak and today’s Friend Challenge score are stored online so friends can find them by nickname, and added friends update by themselves. Never real names, email, location or messages. “Leave online friends” deletes the online profile. It stays switched off until a grown-up completes [docs/ONLINE_SETUP.md](docs/ONLINE_SETUP.md); the security rules are in `firestore.rules`.
 
 ## Games
 

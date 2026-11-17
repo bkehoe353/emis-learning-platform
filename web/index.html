@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Emi’s Maths">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="styles.css">
+<script src="online-config.js" defer></script>
 <script src="app.js" defer></script>
 </head>
 <body>
@@ -145,6 +146,26 @@
 </div>
 
 <div class="page" id="page-friends" role="tabpanel" aria-labelledby="tab-friends" hidden>
+  <section class="profile-shop online-section" id="onlineSection" aria-label="Online friends">
+    <div class="section-title" style="margin-top:0"><div><h2>🌐 Online friends</h2><p>Find friends by their nickname. Once added, their points, league and streak update by themselves!</p></div></div>
+    <p class="shop-note" id="onlineNotReady">Online friends aren’t switched on yet. A grown-up needs to finish the setup first. You can still add friends with friend codes below.</p>
+    <div id="onlineJoin" hidden>
+      <p class="online-warning">👨‍👩‍👧 <strong>Ask a grown-up first.</strong> When you join, other players can find you by your nickname. Only your <strong>nickname, emoji, points, league, day streak and Friend Challenge score</strong> go online, never your real name or where you live. Use a nickname, not your full name. You can leave at any time, and your online profile is deleted.</p>
+      <div class="profile-name"><button type="button" class="primary" id="joinOnlineBtn">🌐 Join online friends</button></div>
+    </div>
+    <div id="onlineJoined" hidden>
+      <p class="online-me">You’re online as <strong id="onlineName"></strong>. Friends can search for your nickname.</p>
+      <div class="profile-name">
+        <label for="onlineSearch" class="sr-only">Friend’s nickname</label>
+        <input id="onlineSearch" maxlength="20" placeholder="Type a friend’s nickname" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="primary" id="onlineSearchBtn">🔎 Search</button>
+      </div>
+      <div id="onlineResults" class="online-results"></div>
+      <div class="profile-name"><button type="button" class="sound-btn" id="leaveOnlineBtn">Leave online friends</button></div>
+    </div>
+    <div id="onlineMessage" role="status" style="margin-top:10px;font-weight:800"></div>
+  </section>
+
   <section class="profile-shop" id="friendsSection" aria-label="Friends and leaderboard">
     <div class="section-title" style="margin-top:0"><div><h2>👫 Friends &amp; Leaderboard</h2><p>Add friends with a share code and compare points.</p></div></div>
     <p class="shop-note"><strong>How it works:</strong> Make your code and send it to a friend. They send you their code to add them. A code holds only your nickname, emoji and points. Friends’ scores don’t update by themselves — ask them for a fresh code to see their new points.</p>
