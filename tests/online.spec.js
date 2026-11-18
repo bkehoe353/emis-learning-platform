@@ -87,6 +87,8 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(() => { expect(errors, 'JavaScript errors on the page').toEqual([]); });
 
 test('online friends are off until a grown-up finishes the setup', async ({ page }) => {
+  // As the site was before the Firebase settings were filled in.
+  await page.route('**/online-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: "window.EMI_ONLINE = { apiKey: '', projectId: '' };" }));
   await page.goto('/');
   await reveal(page.locator('#onlineNotReady'));
   await expect(page.locator('#onlineNotReady')).toBeVisible();

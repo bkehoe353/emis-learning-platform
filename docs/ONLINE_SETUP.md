@@ -1,5 +1,7 @@
 # Switching on online friends (Firebase)
 
+> **Status: done (18 Nov 2026).** Project `emis-learning-platform` (Spark free plan), Google Analytics and Gemini off, anonymous sign-in on with **Auto clean-up off** (so anonymous accounts are never deleted automatically), Firestore Standard edition in **europe-west2 (London)**, rules from `firestore.rules` published, and the browser key restricted to `https://bkehoe353.github.io/*` and `http://localhost:8000/*`. Settings are in `web/online-config.js`. The steps below are kept for reference.
+
 Online friends let children find each other by nickname. Once added, a friend's points, league
 and streak update by themselves. Until these steps are done, the site works exactly as before (offline).
 
