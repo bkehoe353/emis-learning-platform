@@ -81,6 +81,8 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 
 **Tabs:** the site is split into Play, Shop, Friends and Event tabs. A dot on the Event tab means a reward or the chest is waiting. Leaving the Play tab stops any game in progress.
 
+**Christmas Advent Calendar (December 2026):** switches itself on from 1 December and off again in January; before December nothing about it is shown. 24 doors in a jumbled order, each unlocking on its date and opening after 1 finished lesson that day (missed doors can be opened later in December). Prizes: 7 Christmas-only emojis, 3 snowy backgrounds, Elf / Snowman / Christmas Jumper fox suits, points, streak freezes, bonus chests, and the Ultra Legendary Santa Suit on door 24. December also brings gentle snowfall and a “door ready” banner on the Play tab. Christmas prizes are kept after December.
+
 **Daily Treasure Chest:** finish 1 lesson to open a free chest every day. Prizes: 100–250 points, a streak freeze, or one of six chest-only emojis (never a duplicate). Bonus chests from the event can be opened any time. A prize screen shows exactly what was won.
 
 **Weekly Mega Chest:** finish lessons on 3 different days in a week (Monday–Sunday) and a Mega Chest opens on Sunday (if Sunday is missed it waits during the next week). It holds 5 prizes, always including at least one new emoji, plus points, a streak freeze, a bonus chest or a new background. All 5 are shown on the prize screen.

@@ -185,7 +185,43 @@ const EVENT_BACKGROUNDS = [
   { id: 'goldenhour', name: 'Golden Hour', rarity: 'epic', price: 12000, css: 'radial-gradient(circle at 50% 85%,#fff2a8 0 16%,transparent 17%),linear-gradient(180deg,#ff8a8a,#ffb36b 55%,#ffe39a)' },
   { id: 'rainbowgalaxy', name: 'Rainbow Galaxy', rarity: 'legendary', price: 17500, css: STARS + ',conic-gradient(from 90deg at 50% 50%,#ff83b599,#ffd65a99,#8de4cb99,#8bd5ff99,#b48cff99,#ff83b599),linear-gradient(135deg,#0b0b2e,#3a1c71)' },
 ];
-const BACKGROUNDS_BY_ID = Object.fromEntries([...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS].map((b) => [b.id, b]));
+/* ---------- Christmas Advent Calendar (December 2026) ---------- */
+// Switches itself on from 1 December. Before then nothing about it is shown.
+// Christmas-only prizes: never sold in the shop.
+const ADVENT_YEAR = 2026;
+const ADVENT_EMOJIS = [
+  { emoji: '⛄', name: 'Snowman', rarity: 'rare' }, { emoji: '🦌', name: 'Reindeer', rarity: 'super' },
+  { emoji: '🧦', name: 'Stocking', rarity: 'super' }, { emoji: '🔔', name: 'Jingle Bell', rarity: 'super' },
+  { emoji: '🍪', name: 'Gingerbread Cookie', rarity: 'rare' }, { emoji: '🎄', name: 'Christmas Tree', rarity: 'epic' },
+  { emoji: '🎅', name: 'Santa', rarity: 'legendary' },
+].map((e) => ({ ...e, price: 0, event: true, source: 'advent' }));
+const ADVENT_BACKGROUNDS = [
+  { id: 'snowynight', name: 'Snowy Night', rarity: 'rare', css: 'radial-gradient(#fff 1.4px,transparent 2px) 0 0/16px 16px,radial-gradient(#ffffffaa 1px,transparent 1.6px) 8px 8px/16px 16px,linear-gradient(180deg,#1b2a5c,#4b6cb7)' },
+  { id: 'candycane', name: 'Candy Cane', rarity: 'super', css: 'repeating-linear-gradient(45deg,#e8343c 0 12px,#fff 12px 24px)' },
+  { id: 'gingerbread', name: 'Gingerbread House', rarity: 'epic', css: 'radial-gradient(circle at 30% 30%,#fff 0 6%,transparent 7%),radial-gradient(circle at 70% 60%,#fff 0 5%,transparent 6%),linear-gradient(135deg,#c98a4b,#8a5a2b)' },
+].map((b) => ({ ...b, price: 0, event: true, source: 'advent' }));
+const ADVENT_SUITS = [
+  { id: 'elf',     name: 'Elf Suit',              icon: '🧝', hat: '🎄', prop: '🍬', rarity: 'super',     bg: 'linear-gradient(135deg,#3fa66a,#e8343c)', advent: true },
+  { id: 'snowman', name: 'Snowman Suit',          icon: '⛄', hat: '🎩', prop: '🥕', rarity: 'epic',      bg: 'radial-gradient(#fff 1.4px,transparent 2px) 0 0/14px 14px,linear-gradient(180deg,#bfe3ff,#ffffff)', advent: true },
+  { id: 'jumper',  name: 'Christmas Jumper Suit', icon: '🧶', hat: '⭐', prop: '🎁', rarity: 'legendary', bg: 'repeating-linear-gradient(90deg,#c0392b 0 14px,#2e8b57 14px 28px)', advent: true },
+  { id: 'santa',   name: 'Santa Suit',            icon: '🎅', hat: '🎅', prop: '🛷', rarity: 'ultra',     bg: 'radial-gradient(#fff 1.4px,transparent 2px) 0 0/14px 14px,linear-gradient(180deg,#e8343c,#8a1c1c)', advent: true },
+];
+// Door rewards, day 1 to 24.
+const ADVENT = {
+  key: 'advent', days: 24,
+  rewards: [
+    { type: 'emoji', emoji: '⛄' }, { type: 'points', amount: 100 }, { type: 'background', id: 'snowynight' }, { type: 'freeze', amount: 1 },
+    { type: 'emoji', emoji: '🦌' }, { type: 'suit', id: 'elf' }, { type: 'points', amount: 150 }, { type: 'chest', amount: 1 },
+    { type: 'emoji', emoji: '🧦' }, { type: 'background', id: 'candycane' }, { type: 'points', amount: 200 }, { type: 'emoji', emoji: '🔔' },
+    { type: 'freeze', amount: 1 }, { type: 'suit', id: 'snowman' }, { type: 'points', amount: 250 }, { type: 'emoji', emoji: '🍪' },
+    { type: 'chest', amount: 1 }, { type: 'background', id: 'gingerbread' }, { type: 'points', amount: 300 }, { type: 'emoji', emoji: '🎄' },
+    { type: 'freeze', amount: 2 }, { type: 'suit', id: 'jumper' }, { type: 'emoji', emoji: '🎅' }, { type: 'suit', id: 'santa' },
+  ],
+};
+// The order the doors appear in (jumbled, like a real advent calendar).
+const ADVENT_DOOR_ORDER = [7, 15, 2, 21, 11, 4, 18, 9, 24, 13, 1, 20, 6, 16, 10, 23, 3, 12, 19, 8, 14, 22, 5, 17];
+
+const BACKGROUNDS_BY_ID = Object.fromEntries([...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS, ...ADVENT_BACKGROUNDS].map((b) => [b.id, b]));
 
 /* ---------- Fox suits (won in the Fox Fashion Event) ---------- */
 // Each suit dresses the pet fox: a background, a hat (on its head) and a prop (beside it).
@@ -198,7 +234,9 @@ const FOX_SUITS = [
   { id: 'superhero', name: 'Superhero Suit',    icon: '🦸', hat: '⚡', prop: '🛡️', rarity: 'legendary', bg: 'linear-gradient(135deg,#ff6b6b,#4d7cff)' },
   { id: 'dragon',    name: 'Royal Dragon Suit', icon: '🐉', hat: '👑', prop: '🐉', rarity: 'ultra',     bg: 'radial-gradient(circle,#ffe27a,#ff7a3d)' },
 ];
-const SUITS_BY_ID = Object.fromEntries(FOX_SUITS.map((s) => [s.id, s]));
+const SUITS_BY_ID = Object.fromEntries([...FOX_SUITS, ...ADVENT_SUITS].map((s) => [s.id, s]));
+// Everything that can only be won (for prize names in the event code).
+const WINNABLE_EMOJIS = [...EVENT_EMOJIS, ...ADVENT_EMOJIS];
 
 /* ---------- Events ---------- */
 // Finish EXERCISES_PER_DAY lessons in a day to unlock that day's reward, then claim it.
@@ -357,6 +395,10 @@ function sanitizeProfile(saved) {
     streakFreezes: Math.min(99, num(saved.streakFreezes)),
     event: sanitizeEvent(saved.event, EVENTS.reward15.days),     // the ended 15-Day Reward Event
     fashion: sanitizeEvent(saved.fashion, EVENTS.fashion.days),  // the Fox Fashion Event
+    // Advent Calendar doors opened (for this year's calendar only).
+    advent: saved.advent && saved.advent.year === ADVENT_YEAR && Array.isArray(saved.advent.opened)
+      ? { year: ADVENT_YEAR, opened: [...new Set(saved.advent.opened.filter((d) => Number.isInteger(d) && d >= 1 && d <= ADVENT.days))] }
+      : { year: ADVENT_YEAR, opened: [] },
     petName: typeof saved.petName === 'string' && saved.petName.trim() ? saved.petName.trim().slice(0, 16) : 'Foxy',
     petStage: saved.petStage === undefined ? petStageFor(num(saved.correctTotal)) : Math.min(PET_STAGES.length - 1, num(saved.petStage)),
     ownedSuits: Array.isArray(saved.ownedSuits) ? [...new Set(saved.ownedSuits.filter((id) => SUITS_BY_ID[id]))] : [],
@@ -464,6 +506,7 @@ function renderAll() {
   renderBossCard();
   renderDailyCard();
   renderChallengeBoard();
+  renderAdvent();
 }
 
 function saveFriends() {
@@ -629,6 +672,7 @@ function recordExercise() {
   if (profile.lessons === 1 && profile.chestOpenedDay !== day) {
     celebrate('🧰 Your daily Treasure Chest is ready! Open it in the Event tab.');
   }
+  if (profile.lessons === 1 && adventDoorReady()) celebrate('🎄 Your Advent Calendar door is ready to open!');
   const ev = evState(ACTIVE_EVENT);
   if (ev.roundsDay !== day) { ev.roundsDay = day; ev.rounds = 0; }
   ev.rounds++;
@@ -657,7 +701,8 @@ function describeReward(ev, day) {
     return item ? { icon: item.emoji, text: item.name, rarity: 'epic' } : { icon: '🎁', text: 'Mystery emoji', rarity: 'epic' };
   }
   if (r.type === 'background') { const bg = BACKGROUNDS_BY_ID[r.id]; return { bg: bg.css, text: bg.name, rarity: bg.rarity }; }
-  return { icon: r.emoji, text: EVENT_EMOJIS.find((e) => e.emoji === r.emoji).name, rarity: 'ultra' };
+  const won = WINNABLE_EMOJIS.find((e) => e.emoji === r.emoji);
+  return { icon: r.emoji, text: won.name, rarity: won.rarity };
 }
 
 // Gives a reward. Returns a short message and what the prize screen should show.
@@ -699,7 +744,9 @@ function grantReward(ev, day) {
     return { message: `🖼️ ${bg.name} background!`, reveal: { bg: bg.css, name: `${bg.name} background`, rarity: bg.rarity } };
   }
   if (!profile.ownedEmojis.includes(r.emoji)) profile.ownedEmojis.push(r.emoji);
-  return { message: `${r.emoji} Ultra Legendary!`, reveal: { emoji: r.emoji, name: 'Cheetah', rarity: 'ultra' } };
+  const won = WINNABLE_EMOJIS.find((e) => e.emoji === r.emoji);
+  return { message: `${r.emoji} ${won.name}!`, reveal: { emoji: r.emoji, name: won.name, rarity: won.rarity, note: won.source === 'advent' ? 'A Christmas-only emoji!' : '',
+    useLabel: `Use ${r.emoji} now`, onUse: () => { profile.selectedEmoji = r.emoji; saveProfile(); } } };
 }
 
 function claimEventReward() {
@@ -754,7 +801,7 @@ function renderEvent() {
   }
   $('eventPips').textContent = eventComplete(ev) || st.lastEarnedDay === today() ? '✅✅'
     : '✅'.repeat(Math.min(done, EXERCISES_PER_DAY)) + '⬜'.repeat(Math.max(0, EXERCISES_PER_DAY - done));
-  $('eventFreezes').textContent = `❄️ Streak freezes: ${profile.streakFreezes} · 🦊 Fox suits: ${profile.ownedSuits.length} of ${FOX_SUITS.length}`;
+  $('eventFreezes').textContent = `❄️ Streak freezes: ${profile.streakFreezes} · 🦊 Fox suits: ${FOX_SUITS.filter((x) => profile.ownedSuits.includes(x.id)).length} of ${FOX_SUITS.length}`;
 
   const track = $('eventTrack');
   track.textContent = '';
@@ -775,6 +822,74 @@ function renderEvent() {
     track.appendChild(tile);
   }
   updateTabDots();
+}
+
+/* ---------- Christmas Advent Calendar ---------- */
+// Open all of December 2026. Each door unlocks on its date (1–24) and opens once a
+// lesson has been finished that day. Missed doors can still be opened later in December.
+
+const adventToday = () => { const d = new Date(Date.now()); return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() }; };
+const adventOpen = () => { const t = adventToday(); return t.year === ADVENT_YEAR && t.month === 11; };
+const adventUnlockedUpTo = () => (adventOpen() ? Math.min(adventToday().day, ADVENT.days) : 0);
+const adventOpened = (day) => profile.advent.opened.includes(day);
+const adventDoorsWaiting = () => { const n = []; for (let d = 1; d <= adventUnlockedUpTo(); d++) if (!adventOpened(d)) n.push(d); return n; };
+const adventDoorReady = () => adventOpen() && lessonsToday() >= 1 && adventDoorsWaiting().length > 0;
+// Christmas prizes only show in the shop and wardrobe in December, or once owned.
+const adventItemVisible = (owned) => adventOpen() || owned;
+
+function openAdventDoor(day) {
+  if (!adventOpen() || day > adventUnlockedUpTo() || adventOpened(day) || lessonsToday() < 1) return;
+  const { reveal } = grantReward(ADVENT, day);
+  profile.advent = { year: ADVENT_YEAR, opened: [...profile.advent.opened, day] };
+  endTryOn();
+  saveProfile();
+  burstConfetti();
+  if (day === ADVENT.days) burstConfetti();
+  tone(1047, 0.15); setTimeout(() => tone(1319, 0.15), 120); setTimeout(() => tone(1568, 0.25), 240);
+  showReveal({ ...reveal, title: day === ADVENT.days ? '🎄 Door 24: Merry Christmas!' : `🎄 Door ${day}` });
+}
+
+function renderAdvent() {
+  const open = adventOpen();
+  document.body.classList.toggle('december', open);   // gentle snowfall
+  $('adventSection').hidden = !open;
+  $('adventBanner').hidden = !adventDoorReady();
+  if (!open) return;
+  const waiting = adventDoorsWaiting();
+  const lessonDone = lessonsToday() >= 1;
+  const nextDay = adventUnlockedUpTo() + 1;
+  $('adventStatus').textContent = profile.advent.opened.length >= ADVENT.days ? '🎅 Merry Christmas! You opened every door!'
+    : !waiting.length ? `✅ You’ve opened all the doors so far. Door ${nextDay} opens tomorrow!`
+    : !lessonDone ? `Finish 1 lesson today to open ${waiting.length === 1 ? `door ${waiting[0]}` : `your ${waiting.length} doors`}!`
+    : `🎉 Tap a glowing door to open it!${waiting.length > 1 ? ` (${waiting.length} doors waiting)` : ''}`;
+  const grid = $('adventGrid');
+  grid.textContent = '';
+  for (const day of ADVENT_DOOR_ORDER) {
+    const opened = adventOpened(day);
+    const unlocked = day <= adventUnlockedUpTo();
+    const ready = unlocked && !opened && lessonDone;
+    const door = document.createElement('button');
+    door.type = 'button';
+    door.className = 'advent-door' + (opened ? ' opened' : ready ? ' ready' : unlocked ? ' waiting' : ' locked') + (day === ADVENT.days ? ' finale' : '');
+    const num = document.createElement('span'); num.className = 'advent-num'; num.textContent = day;
+    door.appendChild(num);
+    if (opened) {
+      const d = describeReward(ADVENT, day);
+      const pic = document.createElement('span'); pic.className = 'advent-prize';
+      if (d.bg) { pic.classList.add('advent-swatch'); pic.style.background = d.bg; } else pic.textContent = d.icon;
+      door.appendChild(pic);
+      door.setAttribute('aria-label', `Door ${day}: opened, ${d.text}`);
+      door.disabled = true;
+    } else {
+      const hint = document.createElement('small');
+      hint.textContent = ready ? 'Open me!' : unlocked ? 'Do a lesson' : '🔒';
+      door.appendChild(hint);
+      door.setAttribute('aria-label', `Door ${day}: ${ready ? 'ready to open' : unlocked ? 'finish a lesson today to open' : 'opens on ' + day + ' December'}`);
+      door.disabled = !ready;
+      if (ready) door.addEventListener('click', () => openAdventDoor(day));
+    }
+    grid.appendChild(door);
+  }
 }
 
 /* ---------- Prize screen ("You got…") ---------- */
@@ -858,7 +973,7 @@ function showPage(name) {
 
 // The dot on the Event tab shows when a reward or the chest is waiting.
 function updateTabDots() {
-  $('eventDot').hidden = !(evState(ACTIVE_EVENT).unclaimed > 0 || chestReady() || !!megaReadyWeek());
+  $('eventDot').hidden = !(evState(ACTIVE_EVENT).unclaimed > 0 || chestReady() || !!megaReadyWeek() || adventDoorReady());
 }
 
 /* ---------- Daily Treasure Chest ---------- */
@@ -1110,13 +1225,15 @@ function renderWardrobe() {
       btn.addEventListener('click', () => { profile.petSuit = suit ? suit.id : null; saveProfile(); renderPet(suit ? `✨ ${profile.petName} loves the ${suit.name}!` : undefined); });
     } else {
       btn.disabled = true;
-      btn.title = 'Win it in the Fox Fashion Event';
-      btn.setAttribute('aria-label', `${suit.name}: win it in the Fox Fashion Event`);
+      const where = suit.advent ? 'Advent Calendar' : 'Fox Fashion Event';
+      btn.title = `Win it in the ${where}`;
+      btn.setAttribute('aria-label', `${suit.name}: win it in the ${where}`);
     }
     box.appendChild(btn);
   };
   make(null);
   FOX_SUITS.forEach(make);
+  ADVENT_SUITS.filter((x) => adventItemVisible(profile.ownedSuits.includes(x.id))).forEach(make);
 }
 
 function petTheFox() {
@@ -1364,7 +1481,8 @@ function renderStats() {
 // a name, a price, and a way to draw its preview.
 const SHOPS = {
   emoji: {
-    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...SHOP_EMOJIS, ...SPECIAL_EMOJIS],
+    items: () => [{ emoji: DEFAULT_EMOJI, name: 'Happy Face', price: 0 }, ...SHOP_EMOJIS, ...SPECIAL_EMOJIS,
+      ...ADVENT_EMOJIS.filter((e) => adventItemVisible(profile.ownedEmojis.includes(e.emoji)))],
     key: (item) => item.emoji,
     label: (item) => item.name,
     owned: () => profile.ownedEmojis,
@@ -1376,7 +1494,7 @@ const SHOPS = {
     },
   },
   bg: {
-    items: () => SHOP_BACKGROUNDS,
+    items: () => [...SHOP_BACKGROUNDS, ...ADVENT_BACKGROUNDS.filter((b) => adventItemVisible(profile.ownedBackgrounds.includes(b.id)))],
     key: (item) => item.id,
     label: (item) => item.name + ' background',
     owned: () => profile.ownedBackgrounds,
@@ -1444,7 +1562,7 @@ function renderShop(kind, grid) {
     card.className = `emoji-item rarity-${rarity.id}` + (chosen ? ' chosen' : '');
     const chip = document.createElement('span'); chip.className = 'rarity-chip'; chip.textContent = rarity.name;
     const name = document.createElement('strong'); name.textContent = item.name;
-    const price = document.createElement('small'); price.textContent = item.source === 'chest' ? '🧰 Treasure Chest only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
+    const price = document.createElement('small'); price.textContent = item.source === 'chest' ? '🧰 Treasure Chest only' : item.source === 'advent' ? '🎄 Advent only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
     btn.type = 'button';
     if (owned) {
@@ -1454,10 +1572,11 @@ function renderShop(kind, grid) {
       btn.addEventListener('click', () => useItem(kind, key));
     } else if (item.event) {
       const fromChest = item.source === 'chest';      // can only be won, never bought
-      btn.textContent = fromChest ? '🧰 Chest prize' : '🎁 Event reward';
+      const fromAdvent = item.source === 'advent';
+      btn.textContent = fromChest ? '🧰 Chest prize' : fromAdvent ? '🎄 Christmas prize' : '🎁 Event reward';
       btn.className = 'event-locked';
       btn.disabled = true;
-      btn.setAttribute('aria-label', `${label}: win it in the ${fromChest ? 'Treasure Chest' : 'Reward Event'}`);
+      btn.setAttribute('aria-label', `${label}: win it in the ${fromChest ? 'Treasure Chest' : fromAdvent ? 'Advent Calendar' : 'Reward Event'}`);
     } else {
       const short = item.price - profile.points;
       const confirming = pendingBuy === kind + ':' + key;
@@ -2388,6 +2507,7 @@ function init() {
   document.querySelectorAll('.tabbar .tab').forEach((tab) => tab.addEventListener('click', () => showPage(tab.dataset.page)));
   $('openChestBtn').addEventListener('click', openChest);
   $('openMegaBtn').addEventListener('click', openMegaChest);
+  $('adventBanner').addEventListener('click', () => { showPage('event'); $('adventSection').scrollIntoView({ block: 'start' }); });
   $('joinOnlineBtn').addEventListener('click', joinOnline);
   $('leaveOnlineBtn').addEventListener('click', leaveOnline);
   $('onlineSearchBtn').addEventListener('click', searchOnline);

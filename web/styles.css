@@ -267,3 +267,29 @@ button:active{transform:scale(.97)}
 .online-results .leader-row button{background:var(--purple);color:#fff;padding:8px 12px}
 .online-results .leader-row button:disabled{background:#d9f8ec;color:#17694f}
 #joinOnlineBtn.confirm-danger,#leaveOnlineBtn.confirm-danger{background:#ffe0e8;color:#8a2349}
+
+/* --- Christmas Advent Calendar --- */
+.advent-section{background:linear-gradient(135deg,#fff,#fff0f0);border:3px solid #f6c3c3}
+.advent-status{font-weight:900;margin:4px 0 10px}
+.advent-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media(max-width:700px){.advent-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.advent-door{position:relative;min-height:84px;border-radius:14px;padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(160deg,#c0392b,#8a1c1c);color:#fff;border:3px solid #f7d774;font-weight:900}
+.advent-door:nth-child(3n){background:linear-gradient(160deg,#2e8b57,#1b5e3a)}
+.advent-door:nth-child(4n){background:linear-gradient(160deg,#1f4e8c,#14305a)}
+.advent-num{font-size:1.5rem;line-height:1}
+.advent-door small{font-size:.7rem;opacity:.9}
+.advent-door.locked{opacity:.55;filter:saturate(.6)}
+.advent-door.waiting{opacity:.85}
+.advent-door.ready{animation:claim-bounce 1.2s ease-in-out infinite;cursor:pointer}
+.advent-door.opened{background:#fffaf0;color:var(--ink);border-color:#e8d9b0}
+.advent-door.opened .advent-num{font-size:.8rem;position:absolute;top:4px;left:7px;color:#a07d2c}
+.advent-prize{font-size:2rem;line-height:1}
+.advent-swatch{width:40px;height:40px;border-radius:10px;border:2px solid #fff;box-shadow:0 0 0 2px #e8d9b0}
+.advent-door.finale{border-color:#ffd65a;box-shadow:0 0 0 3px #ff83b5}
+.advent-banner{display:block;width:100%;margin:12px 0 0;background:linear-gradient(90deg,#c0392b,#2e8b57);color:#fff;font-size:1.05rem;min-height:52px;border-radius:16px;animation:claim-bounce 1.6s ease-in-out infinite}
+
+/* Gentle snowfall in December */
+body.december::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:35;
+  background-image:radial-gradient(4px 4px at 20px 30px,#b9dcff 50%,transparent 51%),radial-gradient(3px 3px at 120px 80px,#cfe6ff 50%,transparent 51%),radial-gradient(5px 5px at 220px 150px,#a8d2ff 50%,transparent 51%),radial-gradient(3px 3px at 300px 40px,#cfe6ff 50%,transparent 51%);
+  background-size:340px 220px;opacity:.7;animation:snowfall 12s linear infinite}
+@keyframes snowfall{to{background-position:60px 440px}}
