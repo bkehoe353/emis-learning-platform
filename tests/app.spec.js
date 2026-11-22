@@ -39,7 +39,7 @@ test.afterEach(() => { expect(errors, 'JavaScript errors on the page').toEqual([
 test('every game button opens its game', async ({ page }) => {
   await page.goto('/');
   const buttons = page.locator('.games [data-game]');
-  const count = await page.evaluate(() => Object.keys(window.EmiApp.GAMES).length);
+  const count = await page.evaluate(() => Object.values(window.EmiApp.GAMES).filter((g) => !g.hidden).length);
   await expect(buttons).toHaveCount(count);   // one card per game
   for (let i = 0; i < count; i++) {
     await press(buttons.nth(i));
@@ -494,7 +494,7 @@ test('tricky facts: asked about 3 in 10 times, never twice in a row, not in Rank
 
 test('shops show 12 items until See more is tapped', async ({ page }) => {
   await page.goto('/');
-  const emojiCount = await page.evaluate(() => window.EmiApp.SHOP_EMOJIS.length + window.EmiApp.CHEST_EMOJIS.length + 1);   // shop + chest-only + free Happy Face
+  const emojiCount = await page.evaluate(() => window.EmiApp.SHOP_EMOJIS.length + window.EmiApp.SPECIAL_EMOJIS.length + 1);   // shop + win-only + free Happy Face
   await expect(page.locator('#shopGrid .emoji-item')).toHaveCount(12);
   await expect(page.locator('#emojiMore')).toHaveText(`See more (${emojiCount - 12} more) ▼`);
   await press(page.locator('#emojiMore'));
@@ -507,5 +507,5 @@ test('shops show 12 items until See more is tapped', async ({ page }) => {
   await press(page.getByRole('tab', { name: '🎨 Backgrounds' }));
   await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(12);
   await press(page.locator('#bgMore'));
-  await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(await page.evaluate(() => window.EmiApp.SHOP_BACKGROUNDS.length));
+  await expect(page.locator('#bgGrid .emoji-item')).toHaveCount(await page.evaluate(() => window.EmiApp.SHOP_BACKGROUNDS.length + window.EmiApp.MAP_BACKGROUNDS.length));
 });

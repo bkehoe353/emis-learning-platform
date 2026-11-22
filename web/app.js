@@ -24,6 +24,7 @@ const GAMES = {
   ranked:    { title: '🏅 Ranked',               total: 15, perQuestion: 10, typed: true, ranked: true, starAt: 13 },
   boss:      { title: '👾 Boss Battle',          total: 10, perQuestion: 15, boss: true, auto: true, starAt: 8 },
   daily:     { title: '🏁 Friend Challenge',     total: 10, perQuestion: 20, daily: true, auto: true, starAt: 8 },
+  mapboss:   { title: '🗺️ Land Boss',            total: 10, perQuestion: 20, mapBoss: true, auto: true, starAt: 9, hidden: true },   // started from the Adventure Map
 };
 
 // Every emoji must appear only once (ownership is stored by emoji).
@@ -102,6 +103,9 @@ const BADGES = [
   { id: 'challenge',  icon: '🏁', name: 'Challenger',       desc: 'Play a Friend Challenge',              test: (p) => p.challengesPlayed >= 1 },
   { id: 'fashion',    icon: '👗', name: 'Fashion Fox',      desc: 'Collect 3 fox suits',                  test: (p) => p.ownedSuits.length >= 3 },
   { id: 'mega',       icon: '🎁', name: 'Mega Haul',        desc: 'Open a Weekly Mega Chest',             test: (p) => p.megaChestsOpened >= 1 },
+  { id: 'explorer',   icon: '🗺️', name: 'Explorer',         desc: 'Beat your first Adventure Map land',    test: (p) => p.map.land >= 1 },
+  { id: 'album',      icon: '📒', name: 'Sticker Star',     desc: 'Complete a sticker album',             test: (p) => p.albumsDone.length >= 1 },
+  { id: 'decorator',  icon: '🏠', name: 'Interior Designer', desc: 'Buy 5 things for your fox’s den',      test: (p) => p.den.owned.length >= 5 },
   { id: 'collector',  icon: '🎨', name: 'Collector',        desc: 'Own 10 emojis from the shop',          test: (p) => p.ownedEmojis.length >= 11 },
 ];
 const BADGES_BY_ID = Object.fromEntries(BADGES.map((b) => [b.id, b]));
@@ -221,7 +225,42 @@ const ADVENT = {
 // The order the doors appear in (jumbled, like a real advent calendar).
 const ADVENT_DOOR_ORDER = [7, 15, 2, 21, 11, 4, 18, 9, 24, 13, 1, 20, 6, 16, 10, 23, 3, 12, 19, 8, 14, 22, 5, 17];
 
-const BACKGROUNDS_BY_ID = Object.fromEntries([...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS, ...ADVENT_BACKGROUNDS].map((b) => [b.id, b]));
+/* ---------- Fox Adventure Map ---------- */
+// Each finished lesson walks the fox one step. After STEPS_PER_LAND steps the land's boss
+// waits: score MAP_BOSS_PASS or more out of 10 to beat it and reach the next land.
+const STEPS_PER_LAND = 7;
+const MAP_BOSS_PASS = 7;
+const MAP_BACKGROUNDS = [
+  { id: 'forestglade', name: 'Forest Glade', rarity: 'rare', css: 'radial-gradient(circle at 70% 20%,#fff7c2 0 8%,transparent 9%),linear-gradient(180deg,#bfe8b0,#3f8f4f)' },
+  { id: 'sunnybeach', name: 'Sunny Beach', rarity: 'rare', css: 'radial-gradient(circle at 80% 18%,#fff3a0 0 9%,transparent 10%),linear-gradient(180deg,#7fd3ff 0 55%,#ffe1a1 55%)' },
+  { id: 'snowypeaks', name: 'Snowy Peaks', rarity: 'super', css: 'linear-gradient(135deg,transparent 45%,#ffffff 45% 55%,transparent 55%),linear-gradient(180deg,#cfe9ff,#8fb8e8)' },
+  { id: 'starship', name: 'Starship', rarity: 'epic', css: STARS + ',linear-gradient(180deg,#141a4a,#3a2c7a)' },
+  { id: 'lavalake', name: 'Lava Lake', rarity: 'epic', css: 'radial-gradient(circle at 50% 100%,#ffb347 0 25%,transparent 26%),linear-gradient(180deg,#3b1a1a,#c2401c)' },
+  { id: 'candyclouds', name: 'Candy Clouds', rarity: 'legendary', css: 'radial-gradient(circle at 25% 35%,#fff 0 12%,transparent 13%),radial-gradient(circle at 70% 60%,#fff 0 10%,transparent 11%),linear-gradient(135deg,#ffc6e5,#c9b6ff,#a8e6ff)' },
+].map((b) => ({ ...b, price: 0, event: true, source: 'map' }));
+const MAP_LANDS = [
+  { id: 'forest',  name: 'Whispering Forest', icon: '🌲', boss: '🐻',   bossName: 'Bear Guardian',   reward: 'forestglade', points: 200 },
+  { id: 'beach',   name: 'Sunny Shores',      icon: '🏖️', boss: '🦀',   bossName: 'Crab Captain',    reward: 'sunnybeach',  points: 300 },
+  { id: 'snow',    name: 'Snowy Peaks',       icon: '🏔️', boss: '🐻‍❄️', bossName: 'Polar Bear King', reward: 'snowypeaks',  points: 400 },
+  { id: 'space',   name: 'Star Galaxy',       icon: '🚀', boss: '👽',   bossName: 'Alien Overlord',  reward: 'starship',    points: 500 },
+  { id: 'volcano', name: 'Volcano Valley',    icon: '🌋', boss: '🐉',   bossName: 'Fire Dragon',     reward: 'lavalake',    points: 600 },
+  { id: 'candy',   name: 'Candy Kingdom',     icon: '🍭', boss: '🎂',   bossName: 'Cake Monster',    reward: 'candyclouds', points: 1000 },
+];
+
+/* ---------- Sticker Album ---------- */
+// A random sticker after every finished lesson (duplicates happen). Completing an album
+// gives its free emoji, which can't be bought.
+const STICKER_ALBUMS = [
+  { id: 'animals', name: 'Animals', icon: '🐾', stickers: ['🐶', '🐱', '🐰', '🐹', '🐻', '🐸', '🐵', '🐧'], prize: { emoji: '🦘', name: 'Kangaroo' } },
+  { id: 'ocean',   name: 'Ocean',   icon: '🌊', stickers: ['🐬', '🐳', '🐙', '🦀', '🐠', '🦈', '🐚', '🦞'], prize: { emoji: '🦑', name: 'Squid' } },
+  { id: 'space',   name: 'Space',   icon: '🚀', stickers: ['🌙', '⭐', '🪐', '☄️', '🛸', '👽', '🚀', '🌍'], prize: { emoji: '🔭', name: 'Telescope' } },
+  { id: 'food',    name: 'Food',    icon: '🍕', stickers: ['🍕', '🍩', '🍓', '🍦', '🍔', '🧁', '🍉', '🌮'], prize: { emoji: '🍰', name: 'Cake' } },
+];
+// Stickers are stored as "album:emoji" because some emojis appear in more than one album.
+const ALL_STICKERS = STICKER_ALBUMS.flatMap((a) => a.stickers.map((e) => `${a.id}:${e}`));
+const ALBUM_PRIZES = STICKER_ALBUMS.map((a) => ({ ...a.prize, rarity: 'epic', price: 0, event: true, source: 'album' }));
+
+const BACKGROUNDS_BY_ID = Object.fromEntries([...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS, ...ADVENT_BACKGROUNDS, ...MAP_BACKGROUNDS].map((b) => [b.id, b]));
 
 /* ---------- Fox suits (won in the Fox Fashion Event) ---------- */
 // Each suit dresses the pet fox: a background, a hat (on its head) and a prop (beside it).
@@ -236,7 +275,7 @@ const FOX_SUITS = [
 ];
 const SUITS_BY_ID = Object.fromEntries([...FOX_SUITS, ...ADVENT_SUITS].map((s) => [s.id, s]));
 // Everything that can only be won (for prize names in the event code).
-const WINNABLE_EMOJIS = [...EVENT_EMOJIS, ...ADVENT_EMOJIS];
+const WINNABLE_EMOJIS = [...EVENT_EMOJIS, ...ADVENT_EMOJIS, ...ALBUM_PRIZES];
 
 /* ---------- Events ---------- */
 // Finish EXERCISES_PER_DAY lessons in a day to unlock that day's reward, then claim it.
@@ -279,7 +318,15 @@ const CHEST_EMOJIS = [
 // Weekly Mega Chest: lessons on this many different days (Mon–Sun) unlock it on Sunday.
 const MEGA_DAYS_NEEDED = 3;
 // Items that can only be won (Treasure Chest), shown in the shop but not for sale.
-const SPECIAL_EMOJIS = CHEST_EMOJIS;
+const SPECIAL_EMOJIS = [...CHEST_EMOJIS, ...ALBUM_PRIZES];
+// How the shop describes items that can only be won.
+const WIN_ONLY = {
+  chest:  { price: '🧰 Treasure Chest only', button: '🧰 Chest prize',     where: 'Treasure Chest' },
+  advent: { price: '🎄 Advent only',         button: '🎄 Christmas prize', where: 'Advent Calendar' },
+  map:    { price: '🗺️ Adventure Map only',  button: '🗺️ Map prize',       where: 'Adventure Map' },
+  album:  { price: '📒 Sticker album only',  button: '📒 Album prize',     where: 'Sticker Album' },
+  event:  { price: '🎁 Event only',          button: '🎁 Event reward',    where: 'Reward Event' },
+};
 // Everything the emoji shop sells, cheapest first.
 const SHOP_EMOJIS = [...EMOJI_CATALOG, ...EVENT_EMOJIS, EMI_ITEM].sort((a, b) => a.price - b.price);
 const SHOP_BACKGROUNDS = [...BACKGROUND_CATALOG, ...EVENT_BACKGROUNDS].sort((a, b) => a.price - b.price);
@@ -396,6 +443,13 @@ function sanitizeProfile(saved) {
     event: sanitizeEvent(saved.event, EVENTS.reward15.days),     // the ended 15-Day Reward Event
     fashion: sanitizeEvent(saved.fashion, EVENTS.fashion.days),  // the Fox Fashion Event
     // Advent Calendar doors opened (for this year's calendar only).
+    // Adventure Map: which land (0–6, 6 = all done) and how many steps into it.
+    map: { land: Math.min(MAP_LANDS.length, num(saved.map && saved.map.land)), step: Math.min(STEPS_PER_LAND, num(saved.map && saved.map.step)) },
+    // Stickers collected: { "album:emoji": how many }, and albums already completed.
+    stickers: Object.fromEntries(Object.entries(saved.stickers && typeof saved.stickers === 'object' ? saved.stickers : {})
+      .filter(([k, v]) => ALL_STICKERS.includes(k) && Number(v) > 0).map(([k, v]) => [k, Math.min(999, Math.floor(Number(v)))])),
+    albumsDone: Array.isArray(saved.albumsDone) ? [...new Set(saved.albumsDone.filter((id) => STICKER_ALBUMS.some((a) => a.id === id)))] : [],
+    den: sanitizeDen(saved.den),
     advent: saved.advent && saved.advent.year === ADVENT_YEAR && Array.isArray(saved.advent.opened)
       ? { year: ADVENT_YEAR, opened: [...new Set(saved.advent.opened.filter((d) => Number.isInteger(d) && d >= 1 && d <= ADVENT.days))] }
       : { year: ADVENT_YEAR, opened: [] },
@@ -507,6 +561,9 @@ function renderAll() {
   renderDailyCard();
   renderChallengeBoard();
   renderAdvent();
+  renderMap();
+  renderStickers();
+  if (typeof renderDen === 'function') renderDen();
 }
 
 function saveFriends() {
@@ -685,7 +742,10 @@ function recordExercise() {
     const left = EXERCISES_PER_DAY - ev.rounds;
     celebrate(`${left} more lesson${left === 1 ? '' : 's'} today to unlock your event reward!`, { confetti: false });
   }
+  if (game.mode !== 'mapboss') mapStep();   // the fox walks one step on the Adventure Map
+  const doneAlbum = giveSticker();             // a sticker for the album
   saveProfile();
+  if (doneAlbum) showAlbumPrize(doneAlbum);
 }
 
 // What a reward looks like on an event track.
@@ -822,6 +882,128 @@ function renderEvent() {
     track.appendChild(tile);
   }
   updateTabDots();
+}
+
+/* ---------- Fox Adventure Map ---------- */
+
+const mapDone = () => profile.map.land >= MAP_LANDS.length;
+const currentLand = () => MAP_LANDS[Math.min(profile.map.land, MAP_LANDS.length - 1)];
+const atMapBoss = () => !mapDone() && profile.map.step >= STEPS_PER_LAND;
+
+// One step for each finished lesson (the land boss round itself doesn't count as a step).
+function mapStep() {
+  if (mapDone() || atMapBoss()) return;
+  profile.map.step++;
+  const land = currentLand();
+  celebrate(atMapBoss()
+    ? `${land.boss} The ${land.bossName} is waiting at the end of ${land.name}! Fight it on the Adventure Map.`
+    : `🦊 Your fox walked a step through ${land.name}! (${profile.map.step} of ${STEPS_PER_LAND})`, { confetti: false });
+}
+
+// Called when a land boss round ends. Returns the summary to show.
+function finishMapBoss(score) {
+  const land = currentLand();
+  if (score < MAP_BOSS_PASS) return `${land.boss} So close! Score ${MAP_BOSS_PASS} or more out of 10 to beat the ${land.bossName}. Try again!`;
+  const bg = BACKGROUNDS_BY_ID[land.reward];
+  if (!profile.ownedBackgrounds.includes(bg.id)) profile.ownedBackgrounds.push(bg.id);
+  profile.points += land.points;
+  profile.map = { land: profile.map.land + 1, step: 0 };
+  saveProfile();
+  burstConfetti(); burstConfetti();
+  showReveal({ bg: bg.css, name: `${bg.name} background`, rarity: bg.rarity, title: `🏆 You beat the ${land.bossName}!`,
+    note: `+${land.points} points. ` + (mapDone() ? 'You finished the whole Adventure Map! 🎉' : `Next stop: ${currentLand().icon} ${currentLand().name}!`),
+    useLabel: 'Use this background', onUse: () => { profile.selectedBackground = bg.id; saveProfile(); } });
+  return `🏆 You beat the ${land.bossName}! +${land.points} points and the ${bg.name} background.`;
+}
+
+function renderMap() {
+  const done = mapDone();
+  const land = currentLand();
+  $('mapLandTitle').textContent = done ? '🏆 Adventure complete!' : `${land.icon} ${land.name}`;
+  $('mapStatus').textContent = done ? 'Your fox explored every land. Amazing!'
+    : atMapBoss() ? `${land.boss} The ${land.bossName} blocks the path! Score ${MAP_BOSS_PASS} or more out of 10 to win.`
+    : `Finish lessons to walk on: ${STEPS_PER_LAND - profile.map.step} more step${STEPS_PER_LAND - profile.map.step === 1 ? '' : 's'} to the ${land.bossName}.`;
+  const btn = $('mapBossBtn');
+  btn.hidden = !atMapBoss();
+  btn.textContent = `⚔️ Fight the ${land.bossName}!`;
+  const path = $('mapPath');
+  path.textContent = '';
+  if (!done) {
+    for (let i = 1; i <= STEPS_PER_LAND + 1; i++) {
+      const node = document.createElement('span');
+      const isBoss = i === STEPS_PER_LAND + 1;
+      const here = isBoss ? atMapBoss() : profile.map.step === i - 1 && !atMapBoss();
+      node.className = 'map-node' + (isBoss ? ' boss' : '') + (i <= profile.map.step ? ' done' : '') + (here ? ' here' : '');
+      node.textContent = here ? shownPetEmoji() : isBoss ? land.boss : i <= profile.map.step ? '✓' : '';
+      path.appendChild(node);
+    }
+  }
+  const lands = $('mapLands');
+  lands.textContent = '';
+  MAP_LANDS.forEach((l, i) => {
+    const chip = document.createElement('span');
+    const state = i < profile.map.land ? 'done' : i === profile.map.land ? 'current' : 'locked';
+    chip.className = `map-land ${state}`;
+    chip.textContent = state === 'locked' ? '🔒' : l.icon;
+    chip.title = l.name;
+    chip.setAttribute('aria-label', `${l.name}: ${{ done: 'beaten', current: 'exploring now', locked: 'locked' }[state]}`);
+    lands.appendChild(chip);
+  });
+}
+const shownPetEmoji = () => '🦊';
+
+/* ---------- Sticker Album ---------- */
+
+// Gives one random sticker (duplicates allowed). Returns the album if this sticker completed it.
+function giveSticker() {
+  const key = ALL_STICKERS[Math.floor(Math.random() * ALL_STICKERS.length)];
+  const [albumId, emoji] = key.split(':');
+  const album = STICKER_ALBUMS.find((a) => a.id === albumId);
+  const count = (profile.stickers[key] || 0) + 1;
+  profile.stickers[key] = count;
+  celebrate(count === 1 ? `🎴 New sticker: ${emoji} for your ${album.name} album!` : `🎴 Sticker: ${emoji} (you have ${count} now)`, { confetti: false });
+  if (!profile.albumsDone.includes(albumId) && album.stickers.every((e) => profile.stickers[`${albumId}:${e}`])) {
+    profile.albumsDone.push(albumId);
+    if (!profile.ownedEmojis.includes(album.prize.emoji)) profile.ownedEmojis.push(album.prize.emoji);
+    return album;
+  }
+  return null;
+}
+
+function showAlbumPrize(album) {
+  burstConfetti();
+  showReveal({ emoji: album.prize.emoji, name: album.prize.name, rarity: 'epic', title: `📒 ${album.name} album complete!`,
+    note: 'Your free album emoji! You can’t buy this one.', useLabel: `Use ${album.prize.emoji} now`,
+    onUse: () => { profile.selectedEmoji = album.prize.emoji; saveProfile(); } });
+}
+
+function renderStickers() {
+  const box = $('stickerAlbums');
+  box.textContent = '';
+  for (const album of STICKER_ALBUMS) {
+    const got = album.stickers.filter((e) => profile.stickers[`${album.id}:${e}`]).length;
+    const done = profile.albumsDone.includes(album.id);
+    const card = document.createElement('div');
+    card.className = 'sticker-album' + (done ? ' done' : '');
+    const head = document.createElement('div'); head.className = 'sticker-head';
+    const title = document.createElement('strong'); title.textContent = `${album.icon} ${album.name}`;
+    const count = document.createElement('span'); count.textContent = done ? '✅ Complete!' : `${got} of ${album.stickers.length}`;
+    head.append(title, count);
+    const grid = document.createElement('div'); grid.className = 'sticker-grid';
+    for (const e of album.stickers) {
+      const n = profile.stickers[`${album.id}:${e}`] || 0;
+      const slot = document.createElement('span');
+      slot.className = 'sticker' + (n ? ' got' : '');
+      slot.textContent = n ? e : '?';
+      slot.setAttribute('aria-label', n ? `${e} sticker${n > 1 ? `, you have ${n}` : ''}` : 'Sticker not found yet');
+      if (n > 1) { const x = document.createElement('small'); x.className = 'sticker-count'; x.textContent = '×' + n; slot.appendChild(x); }
+      grid.appendChild(slot);
+    }
+    const prize = document.createElement('p'); prize.className = 'sticker-prize';
+    prize.textContent = done ? `You won ${album.prize.emoji} ${album.prize.name}!` : `Complete it to win ${album.prize.emoji} ${album.prize.name} (free, album-only)`;
+    card.append(head, grid, prize);
+    box.appendChild(card);
+  }
 }
 
 /* ---------- Christmas Advent Calendar ---------- */
@@ -1494,7 +1676,7 @@ const SHOPS = {
     },
   },
   bg: {
-    items: () => [...SHOP_BACKGROUNDS, ...ADVENT_BACKGROUNDS.filter((b) => adventItemVisible(profile.ownedBackgrounds.includes(b.id)))],
+    items: () => [...SHOP_BACKGROUNDS, ...MAP_BACKGROUNDS, ...ADVENT_BACKGROUNDS.filter((b) => adventItemVisible(profile.ownedBackgrounds.includes(b.id)))],
     key: (item) => item.id,
     label: (item) => item.name + ' background',
     owned: () => profile.ownedBackgrounds,
@@ -1562,7 +1744,7 @@ function renderShop(kind, grid) {
     card.className = `emoji-item rarity-${rarity.id}` + (chosen ? ' chosen' : '');
     const chip = document.createElement('span'); chip.className = 'rarity-chip'; chip.textContent = rarity.name;
     const name = document.createElement('strong'); name.textContent = item.name;
-    const price = document.createElement('small'); price.textContent = item.source === 'chest' ? '🧰 Treasure Chest only' : item.source === 'advent' ? '🎄 Advent only' : item.price ? item.price.toLocaleString() + ' points' : 'Free';
+    const price = document.createElement('small'); price.textContent = WIN_ONLY[item.source] ? WIN_ONLY[item.source].price : item.price ? item.price.toLocaleString() + ' points' : 'Free';
     const btn = document.createElement('button');
     btn.type = 'button';
     if (owned) {
@@ -1571,12 +1753,11 @@ function renderShop(kind, grid) {
       btn.setAttribute('aria-label', (chosen ? 'Using ' : 'Use ') + label);
       btn.addEventListener('click', () => useItem(kind, key));
     } else if (item.event) {
-      const fromChest = item.source === 'chest';      // can only be won, never bought
-      const fromAdvent = item.source === 'advent';
-      btn.textContent = fromChest ? '🧰 Chest prize' : fromAdvent ? '🎄 Christmas prize' : '🎁 Event reward';
+      const how = WIN_ONLY[item.source] || WIN_ONLY.event;   // can only be won, never bought
+      btn.textContent = how.button;
       btn.className = 'event-locked';
       btn.disabled = true;
-      btn.setAttribute('aria-label', `${label}: win it in the ${fromChest ? 'Treasure Chest' : fromAdvent ? 'Advent Calendar' : 'Reward Event'}`);
+      btn.setAttribute('aria-label', `${label}: win it in the ${how.where}`);
     } else {
       const short = item.price - profile.points;
       const confirming = pendingBuy === kind + ':' + key;
@@ -1657,6 +1838,7 @@ function showShopTab(kind) {
   $('emojiPanel').hidden = kind !== 'emoji';
   $('bgPanel').hidden = kind !== 'bg';
   $('badgePanel').hidden = kind !== 'badges';
+  $('stickerPanel').hidden = kind !== 'stickers';
 }
 
 function saveName() {
@@ -2172,6 +2354,7 @@ function clearTimers() {
 
 function startGame(mode) {
   if (!GAMES[mode]) mode = 'mix';
+  if (mode === 'mapboss' && !atMapBoss()) return;
   if (mode === 'boss') {
     syncBoss();
     if (profile.boss.defeated) { celebrate('✅ You already beat this week’s boss. A new one arrives on Monday!', { confetti: false }); return; }
@@ -2184,7 +2367,8 @@ function startGame(mode) {
   $('tableControls').hidden = mode !== 'table';
   $('bossPanel').hidden = mode !== 'boss';
   if (mode === 'boss') renderBossPanel();
-  $('gameTitle').textContent = mode === 'boss' ? `${currentBoss().face} Boss Battle: ${currentBoss().name}` : game.config.title;
+  $('gameTitle').textContent = mode === 'boss' ? `${currentBoss().face} Boss Battle: ${currentBoss().name}`
+    : mode === 'mapboss' ? `${currentLand().boss} ${currentLand().bossName} (${currentLand().name})` : game.config.title;
   $('restartBtn').hidden = true;
   $('nextBtn').hidden = true;
   $('missed').hidden = true;
@@ -2376,6 +2560,7 @@ function finishRound() {
     const boss = currentBoss();
     summary = profile.boss.defeated ? `⚔️ You defeated ${boss.name}! +${BOSS_REWARD} points` : `${boss.face} ${boss.name} has ${profile.boss.hp} HP left. Come back to finish it!`;
   }
+  if (game.config.mapBoss) summary = finishMapBoss(game.score);
   if (game.config.daily) {
     const time = Math.round(game.times.reduce((a, b) => a + b, 0) * 10) / 10;
     if (!playedChallengeToday()) {
@@ -2507,6 +2692,7 @@ function init() {
   document.querySelectorAll('.tabbar .tab').forEach((tab) => tab.addEventListener('click', () => showPage(tab.dataset.page)));
   $('openChestBtn').addEventListener('click', openChest);
   $('openMegaBtn').addEventListener('click', openMegaChest);
+  $('mapBossBtn').addEventListener('click', () => startGame('mapboss'));
   $('adventBanner').addEventListener('click', () => { showPage('event'); $('adventSection').scrollIntoView({ block: 'start' }); });
   $('joinOnlineBtn').addEventListener('click', joinOnline);
   $('leaveOnlineBtn').addEventListener('click', leaveOnline);
@@ -2559,6 +2745,7 @@ function init() {
 
 // Exposed for automated tests.
 window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENTS, FOX_SUITS, EMI_EMOJI, SHOP_EMOJIS, SHOP_BACKGROUNDS, rollMegaChest,
-  CHEST_EMOJIS, PET_STAGES, BOSSES, BOSS_HP, dailyQuestions, showPage };
+  CHEST_EMOJIS, PET_STAGES, BOSSES, BOSS_HP, dailyQuestions, showPage,
+  SPECIAL_EMOJIS, MAP_BACKGROUNDS, MAP_LANDS, STICKER_ALBUMS, ALL_STICKERS, STEPS_PER_LAND };
 
 init();

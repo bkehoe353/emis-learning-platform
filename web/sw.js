@@ -1,7 +1,7 @@
 // Offline support: try the network first (so updates show up straight away),
 // fall back to the saved copy when there is no internet.
-const CACHE = 'emi-v8';
-const FILES = ['./', 'index.html', 'styles.css', 'online-config.js', 'app.js', 'manifest.webmanifest',
+const CACHE = 'emi-v9';
+const FILES = ['./', 'index.html', 'styles.css', 'online-config.js', 'den.js', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'img/fox-happy.png',
   'ranks/bronze.svg', 'ranks/silver.svg', 'ranks/gold.svg', 'ranks/diamond.svg', 'ranks/amethyst.svg'];
 

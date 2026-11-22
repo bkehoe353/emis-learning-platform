@@ -65,7 +65,7 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 
 **Daily streak:** the first correct answer each day adds to your day streak and gives a daily bonus (+20 on day 1, rising to +110 from day 10). Miss a day and it starts again.
 
-**Badges:** 25 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
+**Badges:** 29 collectable badges (first answer, 100 correct, perfect round, 7-day streak, Diamond rank and so on). Each one gives +50 points once. They are in the Shop’s Badges tab.
 
 **Celebrations:** confetti and a fox message for perfect rounds, stars, new ranks, badges, streaks and purchases. Confetti is skipped if the device asks for reduced motion.
 
@@ -82,6 +82,12 @@ Quick Quiz (10 questions, 60 s each) · Table Trainer · Speed Round (60 s) · M
 **Tabs:** the site is split into Play, Shop, Friends and Event tabs. A dot on the Event tab means a reward or the chest is waiting. Leaving the Play tab stops any game in progress.
 
 **Christmas Advent Calendar (December 2026):** switches itself on from 1 December and off again in January; before December nothing about it is shown. 24 doors in a jumbled order, each unlocking on its date and opening after 1 finished lesson that day (missed doors can be opened later in December). Prizes: 7 Christmas-only emojis, 3 snowy backgrounds, Elf / Snowman / Christmas Jumper fox suits, points, streak freezes, bonus chests, and the Ultra Legendary Santa Suit on door 24. December also brings gentle snowfall and a “door ready” banner on the Play tab. Christmas prizes are kept after December.
+
+**Fox Adventure Map:** six lands (Whispering Forest, Sunny Shores, Snowy Peaks, Star Galaxy, Volcano Valley, Candy Kingdom). Each finished lesson walks the fox one step; after 7 steps the land boss waits (10 questions, 7+ right to win). Beating it gives points and a map-only background and opens the next land.
+
+**Sticker Album:** a random sticker after every finished lesson (duplicates happen and are counted). Four albums of 8 (Animals, Ocean, Space, Food); completing one gives its free album-only emoji (🦘 🦑 🔭 🍰). In the Shop’s Stickers tab.
+
+**Fox’s Den:** a drawn bedroom for the pet fox (Play tab). Colours are free (walls, bedding, curtains, rug, carpet, furniture wood, window view); beds, desks, chairs, lamps, a bookshelf, wallpapers, floors, rugs, posters and 16 decorations are bought with points. Code in `web/den.js`.
 
 **Daily Treasure Chest:** finish 1 lesson to open a free chest every day. Prizes: 100–250 points, a streak freeze, or one of six chest-only emojis (never a duplicate). Bonus chests from the event can be opened any time. A prize screen shows exactly what was won.
 

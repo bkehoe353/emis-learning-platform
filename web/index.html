@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="styles.css">
 <script src="online-config.js" defer></script>
+<script src="den.js" defer></script>
 <script src="app.js" defer></script>
 </head>
 <body>
@@ -62,6 +63,26 @@
       <small id="petNext"></small>
       <div class="wardrobe" id="wardrobe" aria-label="Fox suits"></div>
       <div class="profile-name"><label for="petNameInput" class="sr-only">Pet name</label><input id="petNameInput" maxlength="16" placeholder="Name your fox" autocomplete="off"><button type="button" class="sound-btn" id="petNameBtn">Save pet name</button></div>
+    </div>
+  </section>
+
+  <section class="profile-shop map-section" id="mapSection" aria-label="Fox Adventure Map">
+    <div class="section-title" style="margin-top:0"><div><h2>🗺️ Adventure Map</h2><p>Every lesson you finish walks your fox one step. Beat each land’s boss to explore the next land!</p></div></div>
+    <h3 class="map-land-title" id="mapLandTitle"></h3>
+    <div class="map-path" id="mapPath" aria-hidden="true"></div>
+    <p class="map-status" id="mapStatus" role="status"></p>
+    <button type="button" class="primary map-boss-btn" id="mapBossBtn" hidden></button>
+    <div class="map-lands" id="mapLands"></div>
+  </section>
+
+  <section class="profile-shop den-section" id="denSection" aria-label="Fox’s Den">
+    <div class="section-title" style="margin-top:0"><div><h2 id="denTitle">🏠 Fox’s Den</h2><p>Decorate your fox’s bedroom! Colours are free; furniture and decorations cost points.</p></div></div>
+    <div class="den-room" id="denRoom" role="img" aria-label="Your fox’s bedroom"></div>
+    <div class="profile-name"><button type="button" class="primary" id="denEditBtn" aria-expanded="false">🎨 Decorate</button></div>
+    <div class="den-editor" id="denEditor" hidden>
+      <div class="shop-tabs den-tabs" id="denTabs" role="tablist" aria-label="Decorate"></div>
+      <div id="denOptions" class="den-options"></div>
+      <p class="shop-note" id="denMessage" role="status"></p>
     </div>
   </section>
 
@@ -138,10 +159,12 @@
       <button type="button" class="shop-tab" role="tab" id="emojiTab" data-shop="emoji" aria-controls="emojiPanel" aria-selected="true">🛍️ Emojis</button>
       <button type="button" class="shop-tab" role="tab" id="bgTab" data-shop="bg" aria-controls="bgPanel" aria-selected="false" tabindex="-1">🎨 Backgrounds</button>
       <button type="button" class="shop-tab" role="tab" id="badgeTab" data-shop="badges" aria-controls="badgePanel" aria-selected="false" tabindex="-1">🏅 Badges</button>
+      <button type="button" class="shop-tab" role="tab" id="stickerTab" data-shop="stickers" aria-controls="stickerPanel" aria-selected="false" tabindex="-1">🎴 Stickers</button>
     </div>
     <div class="rarity-key" aria-label="Rarities from most common to rarest"><span class="rarity-chip common">Common</span><span class="rarity-chip rare">Rare</span><span class="rarity-chip super">Super Rare</span><span class="rarity-chip epic">Epic</span><span class="rarity-chip legendary">Legendary</span></div>
     <div id="emojiPanel" role="tabpanel" aria-labelledby="emojiTab"><div class="shop-grid" id="shopGrid"></div><button type="button" class="see-more" id="emojiMore" aria-controls="shopGrid"></button></div>
     <div id="bgPanel" role="tabpanel" aria-labelledby="bgTab" hidden><div class="shop-grid" id="bgGrid"></div><button type="button" class="see-more" id="bgMore" aria-controls="bgGrid"></button></div>
+    <div id="stickerPanel" role="tabpanel" aria-labelledby="stickerTab" hidden><p class="shop-note">You get a sticker every time you finish a lesson (sometimes one you already have!). Fill an album to win its special emoji.</p><div class="sticker-albums" id="stickerAlbums"></div></div>
     <div id="badgePanel" role="tabpanel" aria-labelledby="badgeTab" hidden><p class="shop-note" id="badgeCount"></p><div class="badge-grid" id="badgeGrid"></div></div>
     <p class="shop-note">Your happy face 😀 and the Sunny background are free. Rare items cost up to 18,000 points! Your points, name and unlocked emojis are saved on this device, in this browser. <strong>Tip:</strong> add this site to your Home Screen so your progress stays safe.</p>
   </section>
