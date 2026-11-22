@@ -209,7 +209,7 @@ button:active{transform:scale(.97)}
 /* --- Happy fox logo and pet --- */
 .logo img{width:40px;height:40px;object-fit:contain}
 .pet{overflow:visible}
-.pet-body{width:2.8rem;height:auto;transition:width .4s;filter:drop-shadow(0 4px 6px #c9762a44)}
+.pet-body{line-height:1;transition:font-size .4s}
 .pet-prop{position:absolute;bottom:6px;right:8px;font-size:2.1rem}
 .pet .pet-accessory{top:2px;right:auto;left:50%;transform:translateX(-50%);font-size:2.3rem}
 .pet:not(.happy) .pet-body{animation:fox-bob 3s ease-in-out infinite}

@@ -139,7 +139,7 @@ test('fashion event: Day 3 gives the Beach Suit, which the fox wears; wardrobe c
   await press(page.locator('#claimEventBtn'));
   await expect(page.locator('#revealName')).toHaveText('Beach Suit');
   await expect(page.locator('#revealRarity')).toHaveText('Rare');
-  await expect(page.locator('#revealVisual .fox-figure img')).toBeVisible();
+  await expect(page.locator('#revealVisual .fox-figure .fox-body')).toHaveText('🦊');
   await closePrizeScreen(page);
 
   const p = await profileOf(page);

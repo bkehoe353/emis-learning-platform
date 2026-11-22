@@ -1061,10 +1061,10 @@ function foxFigure(suit, size) {
   fig.className = 'fox-figure';
   fig.style.fontSize = size / 4.6 + 'rem';        // hat and prop scale with the fox
   if (suit) fig.style.background = suit.bg;
-  const img = document.createElement('img'); img.src = 'img/fox-happy.png'; img.alt = ''; img.style.width = size + 'rem';
+  const fox = document.createElement('span'); fox.className = 'fox-body'; fox.textContent = '🦊'; fox.style.fontSize = size + 'rem';
   const hat = document.createElement('span'); hat.className = 'fox-hat'; hat.textContent = suit ? suit.hat : '';
   const prop = document.createElement('span'); prop.className = 'fox-prop'; prop.textContent = suit ? suit.prop : '';
-  fig.append(img, hat, prop);
+  fig.append(fox, hat, prop);
   return fig;
 }
 
@@ -1072,7 +1072,7 @@ function renderPet(mood) {
   const stage = PET_STAGES[profile.petStage];
   const next = PET_STAGES[profile.petStage + 1];
   const suit = SUITS_BY_ID[profile.petSuit];
-  $('petBody').style.width = stage.size * 1.15 + 'rem';
+  $('petBody').style.fontSize = stage.size + 'rem';     // the fox emoji grows with each stage
   $('petAccessory').textContent = suit ? suit.hat : stage.accessory;
   $('petProp').textContent = suit ? suit.prop : '';
   $('petBtn').style.background = suit ? suit.bg : '';
@@ -1772,7 +1772,7 @@ function fromFirestore(fields = {}) {
 // Only these details ever go online.
 function myOnlineProfile() {
   return {
-    name: profile.name, nameLower: profile.name.toLowerCase(), tag: playerTag(profile.online.uid),
+    name: profile.name, nameLower: profile.name.toLowerCase(), nameKey: nameKey(profile.name), tag: playerTag(profile.online.uid),
     emoji: profile.selectedEmoji, bg: profile.selectedBackground, points: profile.points,
     rank: profile.bestRank, rankAvg: profile.bestRankAvg,
     streak: currentDailyStreak(), streakDay: profile.lastPlayDay,
@@ -1873,32 +1873,53 @@ async function leaveOnline() {
   renderOnline();
 }
 
+// The searchable form of a nickname: lower case, letters and numbers only.
+// So "❤️Cheetahs ❤️" is found by typing "cheetahs".
+const nameKey = (text) => String(text || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 20);
+
+// What was typed: a nickname, a nickname with its tag ("Ddog #VTJE"), or just a tag ("#VTJE").
+function parseSearch(text) {
+  const raw = String(text || '').trim();
+  const tagMatch = raw.match(/#\s*([a-z0-9]{4})\b/i);
+  const tag = tagMatch ? tagMatch[1].toUpperCase() : null;
+  const key = nameKey(tagMatch ? raw.replace(tagMatch[0], '') : raw);
+  // Four letters/numbers on their own might be a tag typed without the #: tried if no name matches.
+  const maybeTag = !tag && /^[a-z0-9]{4}$/i.test(raw) ? raw.toUpperCase() : null;
+  return { key, tag, maybeTag };
+}
+
+async function runPlayerQuery(where, orderBy) {
+  const rows = await firestore(':runQuery', {
+    method: 'POST',
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'players' }], where, ...(orderBy ? { orderBy: [{ field: { fieldPath: orderBy } }] } : {}), limit: 10 } }),
+  });
+  return (rows || []).filter((r) => r.document).map((r) => ({ uid: r.document.name.split('/').pop(), data: fromFirestore(r.document.fields) }));
+}
+
 async function searchOnline() {
-  const q = $('onlineSearch').value.trim().toLowerCase();
+  const typed = $('onlineSearch').value.trim();
+  const { key, tag, maybeTag } = parseSearch(typed);
   const box = $('onlineResults');
   box.textContent = '';
-  if (q.length < 2) { showOnlineMessage('Type at least 2 letters of your friend’s nickname.'); return; }
+  if (key.length < 2 && !tag) { showOnlineMessage('Type at least 2 letters of your friend’s nickname (or their tag, like #K2P7).'); return; }
   showOnlineMessage('Searching…');
-  let rows;
+  let found = [];
   try {
-    rows = await firestore(':runQuery', {
-      method: 'POST',
-      body: JSON.stringify({ structuredQuery: {
-        from: [{ collectionId: 'players' }],
-        where: { compositeFilter: { op: 'AND', filters: [
-          { fieldFilter: { field: { fieldPath: 'nameLower' }, op: 'GREATER_THAN_OR_EQUAL', value: { stringValue: q } } },
-          { fieldFilter: { field: { fieldPath: 'nameLower' }, op: 'LESS_THAN', value: { stringValue: q + '' } } },
-        ] } },
-        orderBy: [{ field: { fieldPath: 'nameLower' } }],
-        limit: 10,
-      } }),
-    });
+    if (key.length >= 2) {
+      found = await runPlayerQuery({ compositeFilter: { op: 'AND', filters: [
+        { fieldFilter: { field: { fieldPath: 'nameKey' }, op: 'GREATER_THAN_OR_EQUAL', value: { stringValue: key } } },
+        { fieldFilter: { field: { fieldPath: 'nameKey' }, op: 'LESS_THAN', value: { stringValue: key + '' } } },
+      ] } }, 'nameKey');
+      if (tag) found = found.filter((r) => String(r.data.tag || '').toUpperCase() === tag);
+    }
+    if (!found.length && (tag || maybeTag)) {   // the tag alone is enough
+      found = await runPlayerQuery({ fieldFilter: { field: { fieldPath: 'tag' }, op: 'EQUAL', value: { stringValue: tag || maybeTag } } });
+    }
   } catch {
     showOnlineMessage('Couldn’t search right now. Check the internet and try again.');
     return;
   }
-  const found = (rows || []).filter((r) => r.document).map((r) => ({ uid: r.document.name.split('/').pop(), data: fromFirestore(r.document.fields) }))
-    .filter((r) => r.uid !== profile.online.uid);
+  found = found.filter((r) => r.uid !== profile.online.uid);
   showOnlineMessage(found.length ? `Found ${found.length}. Tap “Add” to add a friend.` : `Nobody called “${$('onlineSearch').value.trim()}” yet. Check the spelling, or ask your friend to join online friends.`);
   for (const { uid, data } of found) {
     const row = document.createElement('div'); row.className = 'leader-row';

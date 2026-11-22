@@ -28,10 +28,11 @@ service cloud.firestore {
     }
 
     function validPlayer(d) {
-      return d.keys().hasOnly(['name', 'nameLower', 'tag', 'emoji', 'bg', 'points', 'rank', 'rankAvg',
+      return d.keys().hasOnly(['name', 'nameLower', 'nameKey', 'tag', 'emoji', 'bg', 'points', 'rank', 'rankAvg',
                                'streak', 'streakDay', 'chDay', 'chScore', 'chTime', 'updated'])
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 20
         && d.nameLower == d.name.lower()
+        && (!('nameKey' in d) || (d.nameKey is string && d.nameKey.size() <= 20))
         && d.tag is string && d.tag.size() <= 4
         && d.emoji is string && d.emoji.size() <= 16
         && d.bg is string && d.bg.size() <= 30

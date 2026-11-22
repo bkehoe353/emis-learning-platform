@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { press, fillIn, reveal } from './helpers.js';
 
 const BASE = 'https://firestore.googleapis.com/v1/projects/demo/databases/(default)/documents';
-const ALLOWED = ['name', 'nameLower', 'tag', 'emoji', 'bg', 'points', 'rank', 'rankAvg', 'streak', 'streakDay', 'chDay', 'chScore', 'chTime', 'updated'];
+const ALLOWED = ['name', 'nameLower', 'nameKey', 'tag', 'emoji', 'bg', 'points', 'rank', 'rankAvg', 'streak', 'streakDay', 'chDay', 'chScore', 'chTime', 'updated'];
 
 // A tiny in-memory Firebase: anonymous sign-in plus the Firestore calls the site uses.
 function fakeFirebase() {
@@ -42,9 +42,14 @@ function fakeFirebase() {
       if (url.endsWith(':runQuery')) {
         if (failing.has('runQuery')) return r.fulfill({ status: 503, json: {} });
         const body = JSON.parse(req.postData());
-        const q = body.structuredQuery.where.compositeFilter.filters[0].fieldFilter.value.stringValue;
-        const hits = [...db.keys()].filter((uid) => db.get(uid).nameLower.stringValue.startsWith(q))
-          .sort((a, b) => db.get(a).nameLower.stringValue.localeCompare(db.get(b).nameLower.stringValue))
+        const where = body.structuredQuery.where;
+        const keyOf = (uid) => (db.get(uid).nameKey || {}).stringValue || '';
+        // Either a nickname search (nameKey starts with…) or a tag search (tag equals…).
+        const match = where.compositeFilter
+          ? ((uid) => { const f = where.compositeFilter.filters[0].fieldFilter; return f.field.fieldPath === 'nameKey' && keyOf(uid).startsWith(f.value.stringValue); })
+          : ((uid) => where.fieldFilter.field.fieldPath === 'tag' && db.get(uid).tag.stringValue === where.fieldFilter.value.stringValue);
+        const hits = [...db.keys()].filter(match)
+          .sort((a, b) => keyOf(a).localeCompare(keyOf(b)))
           .slice(0, body.structuredQuery.limit);
         return r.fulfill({ json: hits.length ? hits.map((uid) => ({ document: doc(uid) })) : [{ readTime: new Date().toISOString() }] });
       }
@@ -121,8 +126,8 @@ test('joining: needs a nickname and two taps; only the allowed details go online
 
 test('search by nickname, add a friend, and their details update by themselves', async ({ page }) => {
   const fb = fakeFirebase();
-  fb.db.set('zoe123', fb.fieldsOf({ name: 'Zoe', nameLower: 'zoe', tag: 'ZOE1', emoji: '🦄', bg: 'sunny', points: 900, rank: 'diamond', rankAvg: 3.2, streak: 4, streakDay: '2026-01-01', chDay: null, chScore: 0, chTime: 0, updated: '2026-01-01T09:00:00Z' }));
-  fb.db.set('zola77', fb.fieldsOf({ name: 'Zola', nameLower: 'zola', tag: 'ZOLA', emoji: '🐼', bg: 'sunny', points: 50, rank: null, rankAvg: null, streak: 0, streakDay: null, chDay: null, chScore: 0, chTime: 0, updated: '2026-01-01T09:00:00Z' }));
+  fb.db.set('zoe123', fb.fieldsOf({ name: 'Zoe', nameLower: 'zoe', nameKey: 'zoe', tag: 'ZOE1', emoji: '🦄', bg: 'sunny', points: 900, rank: 'diamond', rankAvg: 3.2, streak: 4, streakDay: '2026-01-01', chDay: null, chScore: 0, chTime: 0, updated: '2026-01-01T09:00:00Z' }));
+  fb.db.set('zola77', fb.fieldsOf({ name: 'Zola', nameLower: 'zola', nameKey: 'zola', tag: 'ZOLA', emoji: '🐼', bg: 'sunny', points: 50, rank: null, rankAvg: null, streak: 0, streakDay: null, chDay: null, chScore: 0, chTime: 0, updated: '2026-01-01T09:00:00Z' }));
   await fb.attach(page);
   await page.goto('/');
   await setProfile(page, { name: 'Emi', points: 100 });
@@ -162,7 +167,7 @@ test('search by nickname, add a friend, and their details update by themselves',
 
 test('a friend who leaves online friends is marked, not lost', async ({ page }) => {
   const fb = fakeFirebase();
-  fb.db.set('sam999', fb.fieldsOf({ name: 'Sam', nameLower: 'sam', tag: 'SAM9', emoji: '🐶', bg: 'sunny', points: 300, rank: null, rankAvg: null, streak: 0, streakDay: null, chDay: null, chScore: 0, chTime: 0, updated: '2026-01-01T09:00:00Z' }));
+  fb.db.set('sam999', fb.fieldsOf({ name: 'Sam', nameLower: 'sam', nameKey: 'sam', tag: 'SAM9', emoji: '🐶', bg: 'sunny', points: 300, rank: null, rankAvg: null, streak: 0, streakDay: null, chDay: null, chScore: 0, chTime: 0, updated: '2026-01-01T09:00:00Z' }));
   await fb.attach(page);
   await page.goto('/');
   await setProfile(page, { name: 'Emi' });
@@ -224,4 +229,35 @@ test('no internet: search says so and the rest of the game keeps working', async
   await expect(page.locator('#onlineMessage')).toContainText('Couldn’t search right now');
   await press(page.getByRole('button', { name: 'Play Quick Quiz →' }));
   await expect(page.locator('#playArea')).toHaveClass(/active/);
+});
+
+test('search finds friends however their name is typed: with tag, tag only, or ignoring emojis', async ({ page }) => {
+  const fb = fakeFirebase();
+  // The two real names that couldn't be found before the fix.
+  fb.db.set('ddog1', fb.fieldsOf({ name: 'Ddog', nameLower: 'ddog', nameKey: 'ddog', tag: 'VTJE', emoji: '😎', bg: 'sunny', points: 400, rank: null, rankAvg: null, streak: 1, streakDay: null, chDay: null, chScore: 0, chTime: 0, updated: '2026-11-21T09:00:00Z' }));
+  fb.db.set('chee2', fb.fieldsOf({ name: '❤️Cheetahs ❤️', nameLower: '❤️cheetahs ❤️', nameKey: 'cheetahs', tag: 'KVGP', emoji: '🐆', bg: 'sunny', points: 900, rank: null, rankAvg: null, streak: 2, streakDay: null, chDay: null, chScore: 0, chTime: 0, updated: '2026-11-21T09:00:00Z' }));
+  await fb.attach(page);
+  await page.goto('/');
+  await setProfile(page, { name: 'Emi' });
+  await reveal(page.locator('#joinOnlineBtn'));
+  await join(page);
+  for (const typed of ['Ddog #VTJE', 'ddog#vtje', '#VTJE', 'vtje', 'DDOG']) {
+    await fillIn(page.locator('#onlineSearch'), typed);
+    await press(page.locator('#onlineSearchBtn'));
+    await expect(page.locator('#onlineResults .leader-row'), typed).toHaveCount(1);
+    await expect(page.locator('#onlineResults'), typed).toContainText('Ddog #VTJE');
+  }
+  for (const typed of ['Cheetahs', '❤️Cheetahs ❤️ #KVGP', 'cheet', '#kvgp']) {
+    await fillIn(page.locator('#onlineSearch'), typed);
+    await press(page.locator('#onlineSearchBtn'));
+    await expect(page.locator('#onlineResults .leader-row'), typed).toHaveCount(1);
+    await expect(page.locator('#onlineResults'), typed).toContainText('Cheetahs');
+  }
+  // A right name with the wrong tag doesn't match someone else.
+  await fillIn(page.locator('#onlineSearch'), 'Ddog #KVGP');
+  await press(page.locator('#onlineSearchBtn'));
+  await expect(page.locator('#onlineResults')).toContainText('Cheetahs ❤️ #KVGP');   // falls back to the tag
+  // My own saved profile includes the searchable name.
+  const [mine] = [...fb.db.entries()].filter(([uid]) => !['ddog1', 'chee2'].includes(uid)).map(([, d]) => fb.plain(d));
+  expect(mine.nameKey).toBe('emi');
 });
