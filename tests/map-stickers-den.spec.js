@@ -71,19 +71,28 @@ async function playBoss(page, correct) {
   }
 }
 
-test('map: beating the land boss (7+ right) unlocks the next land and its background', async ({ page }) => {
+test('map: beating the land boss (7+ right) gives points, a suit, a background and a chest, and opens the next land', async ({ page }) => {
   await startOn(page, '2026-11-10T09:00:00');
-  await setProfile(page, { points: 0, map: { land: 0, step: 7 } });
+  await setProfile(page, { points: 0, bonusChests: 0, map: { land: 0, step: 7 } });
   await expect(page.locator('#mapBossBtn')).toHaveText('⚔️ Fight the Bear Guardian!');
+  await expect(page.locator('#mapPrize')).toContainText('500 points');
+  await expect(page.locator('#mapPrize')).toContainText('Explorer Suit');
   await playBoss(page, 7);
   await expect(page.locator('#prizeReveal')).toBeVisible();
   await expect(page.locator('#revealTitle')).toContainText('You beat the Bear Guardian');
-  await expect(page.locator('#revealName')).toHaveText('Forest Glade background');
+  await expect(page.locator('#revealVisual .reveal-item')).toHaveCount(4);
+  await expect(page.locator('#revealVisual')).toContainText('500 points');
+  await expect(page.locator('#revealVisual')).toContainText('Explorer Suit');
+  await expect(page.locator('#revealVisual')).toContainText('Forest Glade background');
+  await expect(page.locator('#revealUseBtn')).toHaveText('Wear the Explorer Suit');
   await press(page.locator('#revealUseBtn'));
   const p = await profileOf(page);
   expect(p.map).toEqual({ land: 1, step: 0 });               // the boss round isn't a map step
-  expect(p.selectedBackground).toBe('forestglade');
-  expect(await points(page)).toBe(7 * 10 + 200);
+  expect(p.ownedBackgrounds).toContain('forestglade');
+  expect(p.ownedSuits).toContain('explorer');
+  expect(p.petSuit).toBe('explorer');
+  expect(p.bonusChests).toBe(1);
+  expect(await points(page)).toBe(7 * 10 + 500);
   await press(page.locator('#closeBtn'));
   await expect(page.locator('#mapLandTitle')).toHaveText('🏖️ Sunny Shores');
   await expect(page.locator('#mapLands .map-land.done')).toHaveCount(1);
@@ -159,7 +168,7 @@ test('den: the bedroom is drawn with the fox in it, wearing its suit', async ({ 
   await page.goto('/');
   await setProfile(page, { petName: 'Biscuit', ownedSuits: ['beach'], petSuit: 'beach' });
   await expect(page.locator('#denTitle')).toHaveText('🏠 Biscuit’s Den');
-  for (const part of ['.den-wall', '.den-floor', '.den-window', '.den-bed svg', '.den-fox']) await expect(page.locator('#denRoom ' + part)).toHaveCount(1);
+  for (const part of ['.den-wall', '.den-floor', '.den-window', '.den-bed svg', '.den-walker .fox-svg']) await expect(page.locator('#denRoom ' + part)).toHaveCount(1);
   await expect(page.locator('#denRoom .den-fox-hat')).toHaveText('👒');
 });
 
@@ -242,4 +251,123 @@ test('Interior Designer badge after 5 den purchases', async ({ page }) => {
   await press(page.getByRole('button', { name: 'Buy Plant for 200 points' }));
   await press(page.getByRole('button', { name: 'Confirm: buy Plant' }));
   expect(Object.keys((await profileOf(page)).badges)).toContain('decorator');
+});
+
+test('den: the heart wallpaper shows', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { den: { wallpaper: 'wp-hearts', owned: ['wp-hearts'] } });
+  const bg = await page.locator('#denRoom .den-wall').evaluate((el) => getComputedStyle(el).backgroundImage);
+  expect(bg).toContain('data:image/svg+xml');
+});
+
+test('den: things can be dragged to a new place, and put back', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { den: { owned: ['dec-teddy'], decor: ['dec-teddy'] } });
+  const teddy = page.locator('#denRoom [data-move="dec-teddy"]');
+  await teddy.scrollIntoViewIfNeeded();
+  const drag = async () => {
+    const box = await teddy.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 + 30, { steps: 6 });
+    await page.mouse.up();
+  };
+  await drag();                                           // not in move mode: nothing moves
+  expect((await profileOf(page)).den.pos).toEqual({});
+  await press(page.locator('#denMoveBtn'));
+  await expect(page.locator('#denMoveHelp')).toBeVisible();
+  await drag();
+  const pos = (await profileOf(page)).den.pos['dec-teddy'];
+  expect(pos[0]).toBeGreaterThan(12);                     // started at 8% from the left
+  await page.reload();
+  const left = await page.locator('#denRoom [data-move="dec-teddy"]').evaluate((el) => el.style.left);
+  expect(left).toBe(pos[0] + '%');
+  await press(page.locator('#denMoveBtn'));
+  await press(page.locator('#denResetBtn'));
+  expect((await profileOf(page)).den.pos).toEqual({});
+});
+
+test.describe(() => {
+  test.use({ reducedMotion: 'no-preference' });
+test('den: the fox walks around on four legs and sometimes naps', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-10T09:00:00') });
+  await page.goto('/');
+  await page.clock.pauseAt(new Date('2026-11-10T09:01:00'));
+  await setProfile(page, {});
+  await expect(page.locator('#denRoom .den-walker .leg')).toHaveCount(4);
+  await page.evaluate(() => {
+    window.__fox = { walking: false, sleeping: false, lefts: new Set() };
+    const fox = document.querySelector('.den-walker');
+    new MutationObserver(() => {
+      if (fox.classList.contains('walking')) window.__fox.walking = true;
+      if (fox.classList.contains('sleeping')) window.__fox.sleeping = true;
+      window.__fox.lefts.add(fox.style.left);
+    }).observe(fox, { attributes: true });
+  });
+  await page.clock.runFor(120_000);
+  const seen = await page.evaluate(() => ({ walking: window.__fox.walking, sleeping: window.__fox.sleeping, places: window.__fox.lefts.size }));
+  expect(seen.walking).toBe(true);
+  expect(seen.sleeping).toBe(true);
+  expect(seen.places).toBeGreaterThan(2);
+});});
+
+
+test('den: new furniture (sofa) can be bought, and its colour changed for free', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { points: 1500 });
+  await press(page.locator('#denEditBtn'));
+  await press(page.getByRole('tab', { name: '🪑 Furniture' }));
+  await press(page.getByRole('button', { name: 'Buy Sofa for 1500 points' }));
+  await press(page.getByRole('button', { name: 'Confirm: buy Sofa' }));
+  await expect(page.locator('#denRoom .den-sofa')).toHaveCount(1);
+  await press(page.getByRole('tab', { name: '🎨 Colours' }));
+  await press(page.getByRole('button', { name: 'Sofa & armchair: Mint' }));
+  expect((await profileOf(page)).den.colours.sofa).toBe('mint');
+  expect(await points(page)).toBe(0);
+  const count = await page.evaluate(() => [...document.querySelectorAll('#denOptions')].length);
+  expect(count).toBe(1);
+});
+
+test('den: the fox can wear den clothes, and its suit can be chosen just for the den', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { points: 2250, ownedSuits: ['beach'], petSuit: 'beach' });
+  await expect(page.locator('#denRoom .fox-wear.head')).toHaveText('👒');
+  await press(page.locator('#denEditBtn'));
+  await press(page.getByRole('tab', { name: '🦊 Fox outfit' }));
+  await press(page.getByRole('button', { name: 'Buy Glasses for 250 points' }));
+  await press(page.getByRole('button', { name: 'Confirm: buy Glasses' }));
+  await expect(page.locator('#denRoom .fox-wear.face')).toHaveText('👓');
+  await press(page.getByRole('button', { name: 'Buy Crown for 2000 points' }));
+  await press(page.getByRole('button', { name: 'Confirm: buy Crown' }));
+  await expect(page.locator('#denRoom .fox-wear.head')).toHaveText('👑');   // replaces the suit's hat
+  expect(await points(page)).toBe(0);
+  await press(page.getByRole('button', { name: 'Use No hat' }));
+  await expect(page.locator('#denRoom .fox-wear.head')).toHaveText('👒');
+  await press(page.getByRole('button', { name: 'Den suit: No suit' }));
+  await expect(page.locator('#denRoom .fox-wear.head')).toHaveText('');
+  const p = await profileOf(page);
+  expect(p.den.suit).toBe('none');
+  expect(p.petSuit).toBe('beach');                       // the Play-tab pet keeps its suit
+  expect(p.den['wear-face']).toBe('face-glasses');
+});
+
+test('map: steps give coins and a chest halfway through each land', async ({ page }) => {
+  await page.goto('/');
+  await setProfile(page, { points: 0, bonusChests: 0, map: { land: 0, step: 2 } });
+  await page.evaluate(() => window.EmiApp.mapStep());
+  let p = await profileOf(page);
+  expect(p.map.step).toBe(3);
+  expect(p.points).toBe(20);
+  expect(p.bonusChests).toBe(0);
+  await page.evaluate(() => window.EmiApp.mapStep());
+  p = await profileOf(page);
+  expect(p.points).toBe(40);
+  expect(p.bonusChests).toBe(1);
+});
+
+test('a shortcut on the Play tab opens the sticker album', async ({ page }) => {
+  await page.goto('/');
+  await press(page.locator('#stickerShortcut'));
+  await expect(page.locator('#page-shop')).toBeVisible();
+  await expect(page.locator('#stickerPanel')).toBeVisible();
 });

@@ -229,6 +229,8 @@ const ADVENT_DOOR_ORDER = [7, 15, 2, 21, 11, 4, 18, 9, 24, 13, 1, 20, 6, 16, 10,
 // Each finished lesson walks the fox one step. After STEPS_PER_LAND steps the land's boss
 // waits: score MAP_BOSS_PASS or more out of 10 to beat it and reach the next land.
 const STEPS_PER_LAND = 7;
+const MAP_STEP_COINS = 20;     // found on every step
+const MAP_CHEST_STEP = 4;      // a bonus Treasure Chest halfway through each land
 const MAP_BOSS_PASS = 7;
 const MAP_BACKGROUNDS = [
   { id: 'forestglade', name: 'Forest Glade', rarity: 'rare', css: 'radial-gradient(circle at 70% 20%,#fff7c2 0 8%,transparent 9%),linear-gradient(180deg,#bfe8b0,#3f8f4f)' },
@@ -239,12 +241,12 @@ const MAP_BACKGROUNDS = [
   { id: 'candyclouds', name: 'Candy Clouds', rarity: 'legendary', css: 'radial-gradient(circle at 25% 35%,#fff 0 12%,transparent 13%),radial-gradient(circle at 70% 60%,#fff 0 10%,transparent 11%),linear-gradient(135deg,#ffc6e5,#c9b6ff,#a8e6ff)' },
 ].map((b) => ({ ...b, price: 0, event: true, source: 'map' }));
 const MAP_LANDS = [
-  { id: 'forest',  name: 'Whispering Forest', icon: '🌲', boss: '🐻',   bossName: 'Bear Guardian',   reward: 'forestglade', points: 200 },
-  { id: 'beach',   name: 'Sunny Shores',      icon: '🏖️', boss: '🦀',   bossName: 'Crab Captain',    reward: 'sunnybeach',  points: 300 },
-  { id: 'snow',    name: 'Snowy Peaks',       icon: '🏔️', boss: '🐻‍❄️', bossName: 'Polar Bear King', reward: 'snowypeaks',  points: 400 },
-  { id: 'space',   name: 'Star Galaxy',       icon: '🚀', boss: '👽',   bossName: 'Alien Overlord',  reward: 'starship',    points: 500 },
-  { id: 'volcano', name: 'Volcano Valley',    icon: '🌋', boss: '🐉',   bossName: 'Fire Dragon',     reward: 'lavalake',    points: 600 },
-  { id: 'candy',   name: 'Candy Kingdom',     icon: '🍭', boss: '🎂',   bossName: 'Cake Monster',    reward: 'candyclouds', points: 1000 },
+  { id: 'forest',  name: 'Whispering Forest', icon: '🌲', boss: '🐻',   bossName: 'Bear Guardian',   reward: 'forestglade', points: 500,  suit: 'explorer' },
+  { id: 'beach',   name: 'Sunny Shores',      icon: '🏖️', boss: '🦀',   bossName: 'Crab Captain',    reward: 'sunnybeach',  points: 750,  suit: 'surfer' },
+  { id: 'snow',    name: 'Snowy Peaks',       icon: '🏔️', boss: '🐻‍❄️', bossName: 'Polar Bear King', reward: 'snowypeaks',  points: 1000, suit: 'snowsuit' },
+  { id: 'space',   name: 'Star Galaxy',       icon: '🚀', boss: '👽',   bossName: 'Alien Overlord',  reward: 'starship',    points: 1500, suit: 'alien' },
+  { id: 'volcano', name: 'Volcano Valley',    icon: '🌋', boss: '🐉',   bossName: 'Fire Dragon',     reward: 'lavalake',    points: 2000, suit: 'firesuit' },
+  { id: 'candy',   name: 'Candy Kingdom',     icon: '🍭', boss: '🎂',   bossName: 'Cake Monster',    reward: 'candyclouds', points: 3000, suit: 'candysuit' },
 ];
 
 /* ---------- Sticker Album ---------- */
@@ -273,7 +275,16 @@ const FOX_SUITS = [
   { id: 'superhero', name: 'Superhero Suit',    icon: '🦸', hat: '⚡', prop: '🛡️', rarity: 'legendary', bg: 'linear-gradient(135deg,#ff6b6b,#4d7cff)' },
   { id: 'dragon',    name: 'Royal Dragon Suit', icon: '🐉', hat: '👑', prop: '🐉', rarity: 'ultra',     bg: 'radial-gradient(circle,#ffe27a,#ff7a3d)' },
 ];
-const SUITS_BY_ID = Object.fromEntries([...FOX_SUITS, ...ADVENT_SUITS].map((s) => [s.id, s]));
+// Suits won by beating Adventure Map bosses.
+const MAP_SUITS = [
+  { id: 'explorer',  name: 'Explorer Suit', icon: '🧢', hat: '🧢', prop: '🔦', rarity: 'rare',      bg: 'linear-gradient(180deg,#bfe8b0,#3f8f4f)', map: true },
+  { id: 'surfer',    name: 'Surfer Suit',   icon: '🏄', hat: '🌺', prop: '🏄', rarity: 'super',     bg: 'linear-gradient(180deg,#7fd3ff 0 55%,#ffe1a1 55%)', map: true },
+  { id: 'snowsuit',  name: 'Snow Suit',     icon: '⛷️', hat: '❄️', prop: '🎿', rarity: 'super',     bg: 'linear-gradient(180deg,#cfe9ff,#8fb8e8)', map: true },
+  { id: 'alien',     name: 'Alien Suit',    icon: '👽', hat: '👽', prop: '🛸', rarity: 'epic',      bg: STARS + ',linear-gradient(180deg,#141a4a,#3a2c7a)', map: true },
+  { id: 'firesuit',  name: 'Fire Suit',     icon: '🔥', hat: '🔥', prop: '🌋', rarity: 'legendary', bg: 'radial-gradient(circle,#ffb347,#c2401c)', map: true },
+  { id: 'candysuit', name: 'Candy Suit',    icon: '🍭', hat: '🍭', prop: '🍬', rarity: 'ultra',     bg: 'linear-gradient(135deg,#ffc6e5,#c9b6ff,#a8e6ff)', map: true },
+];
+const SUITS_BY_ID = Object.fromEntries([...FOX_SUITS, ...ADVENT_SUITS, ...MAP_SUITS].map((s) => [s.id, s]));
 // Everything that can only be won (for prize names in the event code).
 const WINNABLE_EMOJIS = [...EVENT_EMOJIS, ...ADVENT_EMOJIS, ...ALBUM_PRIZES];
 
@@ -894,10 +905,16 @@ const atMapBoss = () => !mapDone() && profile.map.step >= STEPS_PER_LAND;
 function mapStep() {
   if (mapDone() || atMapBoss()) return;
   profile.map.step++;
+  profile.points += MAP_STEP_COINS;                         // coins found on the path
   const land = currentLand();
-  celebrate(atMapBoss()
-    ? `${land.boss} The ${land.bossName} is waiting at the end of ${land.name}! Fight it on the Adventure Map.`
-    : `🦊 Your fox walked a step through ${land.name}! (${profile.map.step} of ${STEPS_PER_LAND})`, { confetti: false });
+  if (profile.map.step === MAP_CHEST_STEP) {
+    profile.bonusChests++;
+    celebrate(`🧰 Your fox found a Treasure Chest halfway through ${land.name}! Open it in the Event tab.`);
+  } else {
+    celebrate(atMapBoss()
+      ? `${land.boss} The ${land.bossName} is waiting at the end of ${land.name}! Fight it on the Adventure Map. (+${MAP_STEP_COINS} coins)`
+      : `🦊 Your fox walked a step through ${land.name} and found ${MAP_STEP_COINS} coins! (${profile.map.step} of ${STEPS_PER_LAND})`, { confetti: false });
+  }
 }
 
 // Called when a land boss round ends. Returns the summary to show.
@@ -905,15 +922,26 @@ function finishMapBoss(score) {
   const land = currentLand();
   if (score < MAP_BOSS_PASS) return `${land.boss} So close! Score ${MAP_BOSS_PASS} or more out of 10 to beat the ${land.bossName}. Try again!`;
   const bg = BACKGROUNDS_BY_ID[land.reward];
+  const suit = SUITS_BY_ID[land.suit];
   if (!profile.ownedBackgrounds.includes(bg.id)) profile.ownedBackgrounds.push(bg.id);
+  if (!profile.ownedSuits.includes(suit.id)) profile.ownedSuits.push(suit.id);
   profile.points += land.points;
+  profile.bonusChests++;
   profile.map = { land: profile.map.land + 1, step: 0 };
   saveProfile();
   burstConfetti(); burstConfetti();
-  showReveal({ bg: bg.css, name: `${bg.name} background`, rarity: bg.rarity, title: `🏆 You beat the ${land.bossName}!`,
-    note: `+${land.points} points. ` + (mapDone() ? 'You finished the whole Adventure Map! 🎉' : `Next stop: ${currentLand().icon} ${currentLand().name}!`),
-    useLabel: 'Use this background', onUse: () => { profile.selectedBackground = bg.id; saveProfile(); } });
-  return `🏆 You beat the ${land.bossName}! +${land.points} points and the ${bg.name} background.`;
+  showReveal({
+    title: `🏆 You beat the ${land.bossName}!`,
+    items: [
+      { icon: '🪙', name: `${land.points.toLocaleString()} points` },
+      { suit, name: suit.name, rarity: suit.rarity },
+      { bg: bg.css, name: `${bg.name} background`, rarity: bg.rarity },
+      { icon: '🧰', name: 'Bonus chest' },
+    ],
+    note: mapDone() ? 'You finished the whole Adventure Map! 🎉' : `Next stop: ${currentLand().icon} ${currentLand().name}!`,
+    useLabel: `Wear the ${suit.name}`, onUse: () => { profile.petSuit = suit.id; saveProfile(); },
+  });
+  return `🏆 You beat the ${land.bossName}! +${land.points.toLocaleString()} points, the ${suit.name}, the ${bg.name} background and a bonus chest.`;
 }
 
 function renderMap() {
@@ -923,6 +951,7 @@ function renderMap() {
   $('mapStatus').textContent = done ? 'Your fox explored every land. Amazing!'
     : atMapBoss() ? `${land.boss} The ${land.bossName} blocks the path! Score ${MAP_BOSS_PASS} or more out of 10 to win.`
     : `Finish lessons to walk on: ${STEPS_PER_LAND - profile.map.step} more step${STEPS_PER_LAND - profile.map.step === 1 ? '' : 's'} to the ${land.bossName}.`;
+  $('mapPrize').textContent = done ? '' : `${land.boss} Beat the ${land.bossName} to win: 🪙 ${land.points.toLocaleString()} points · ${SUITS_BY_ID[land.suit].icon} ${SUITS_BY_ID[land.suit].name} · 🖼️ ${BACKGROUNDS_BY_ID[land.reward].name} · 🧰 bonus chest`;
   const btn = $('mapBossBtn');
   btn.hidden = !atMapBoss();
   btn.textContent = `⚔️ Fight the ${land.bossName}!`;
@@ -1407,7 +1436,7 @@ function renderWardrobe() {
       btn.addEventListener('click', () => { profile.petSuit = suit ? suit.id : null; saveProfile(); renderPet(suit ? `✨ ${profile.petName} loves the ${suit.name}!` : undefined); });
     } else {
       btn.disabled = true;
-      const where = suit.advent ? 'Advent Calendar' : 'Fox Fashion Event';
+      const where = suit.advent ? 'Advent Calendar' : suit.map ? 'Adventure Map' : 'Fox Fashion Event';
       btn.title = `Win it in the ${where}`;
       btn.setAttribute('aria-label', `${suit.name}: win it in the ${where}`);
     }
@@ -1416,6 +1445,7 @@ function renderWardrobe() {
   make(null);
   FOX_SUITS.forEach(make);
   ADVENT_SUITS.filter((x) => adventItemVisible(profile.ownedSuits.includes(x.id))).forEach(make);
+  MAP_SUITS.forEach(make);
 }
 
 function petTheFox() {
@@ -2693,6 +2723,7 @@ function init() {
   $('openChestBtn').addEventListener('click', openChest);
   $('openMegaBtn').addEventListener('click', openMegaChest);
   $('mapBossBtn').addEventListener('click', () => startGame('mapboss'));
+  $('stickerShortcut').addEventListener('click', () => { showPage('shop'); showShopTab('stickers'); $('stickerPanel').scrollIntoView({ block: 'start' }); });
   $('adventBanner').addEventListener('click', () => { showPage('event'); $('adventSection').scrollIntoView({ block: 'start' }); });
   $('joinOnlineBtn').addEventListener('click', joinOnline);
   $('leaveOnlineBtn').addEventListener('click', leaveOnline);
@@ -2746,6 +2777,6 @@ function init() {
 // Exposed for automated tests.
 window.EmiApp = { makeQuestion, decodeFriendCode, makeFriendCode, EMOJI_CATALOG, BACKGROUND_CATALOG, GAMES, RANKS, rankForAverage, pickTrickyFactors, getProfile: () => profile, BADGES, makeBackupCode, readBackupCode, compareLeaders, RARITIES, rarityFor, rarityOf, EVENT_EMOJIS, EVENT_BACKGROUNDS, EVENTS, FOX_SUITS, EMI_EMOJI, SHOP_EMOJIS, SHOP_BACKGROUNDS, rollMegaChest,
   CHEST_EMOJIS, PET_STAGES, BOSSES, BOSS_HP, dailyQuestions, showPage,
-  SPECIAL_EMOJIS, MAP_BACKGROUNDS, MAP_LANDS, STICKER_ALBUMS, ALL_STICKERS, STEPS_PER_LAND };
+  SPECIAL_EMOJIS, MAP_BACKGROUNDS, MAP_LANDS, STICKER_ALBUMS, ALL_STICKERS, STEPS_PER_LAND, mapStep, MAP_SUITS };
 
 init();

@@ -101,6 +101,8 @@ test('badges: rank, perfect-round and 100-correct badges', async ({ page }) => {
 
 /* ---------- Celebrations ---------- */
 
+test.describe(() => {
+  test.use({ reducedMotion: 'no-preference' });
 test('celebrations: confetti and fox message on a purchase', async ({ page }) => {
   await page.goto('/');
   await setProfile(page, { points: 500 });
@@ -108,7 +110,8 @@ test('celebrations: confetti and fox message on a purchase', async ({ page }) =>
   await press(page.getByRole('button', { name: 'Confirm: buy Cool Face' }));
   await expect(page.locator('#toast')).toContainText('You got 😎 Cool Face!');
   await expect(page.locator('#confetti .confetti-piece').first()).toBeAttached();
-});
+});});
+
 
 /* ---------- Try it on ---------- */
 

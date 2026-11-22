@@ -64,7 +64,7 @@ test('Quick Quiz: 10 questions, +10 once per correct answer, final score out of 
     await press(correct);
     // Tapping again must not score twice.
     await correct.click({ force: true });
-    expect(await points(page)).toBe(q * 10);
+    expect(await points(page)).toBe(q * 10 + (q === 10 ? 20 : 0));   // +20 map coins when the round ends
     if (q < 10) await press(page.locator('#nextBtn'));
   }
   await expect(page.locator('#feedback')).toContainText('You got 10 out of 10');
@@ -133,7 +133,7 @@ test('Speed Round ends after 60 seconds', async ({ page }) => {
   await page.clock.runFor(60_000);
   await expect(page.locator('#feedback')).toContainText('You got 1 correct in 60 seconds');
   await expect(page.locator('#answers .answer')).toHaveCount(0);
-  expect(await points(page)).toBe(10);
+  expect(await points(page)).toBe(10 + 20);   // +20 map coins for a finished lesson
 });
 
 test('Times Tables Check: typed answers, 25 questions, 6 seconds each', async ({ page }) => {
@@ -163,7 +163,7 @@ test('Times Tables Check: typed answers, 25 questions, 6 seconds each', async ({
   await expect(page.locator('#feedback')).toContainText('You got 1 out of 25');
   await expect(page.locator('#missed')).toBeVisible();
   await expect(page.locator('#missed')).toContainText('Facts to practise');
-  expect(await points(page)).toBe(10);
+  expect(await points(page)).toBe(10 + 20);   // +20 map coins for a finished lesson
 });
 
 test('Table Trainer uses the chosen table and changing it restarts the round', async ({ page }) => {
@@ -402,7 +402,7 @@ test('Ranked: fast answers earn Amethyst, shown on profile and leaderboard', asy
   await expect(page.locator('#rankResult img[alt="Amethyst rank"]').first()).toBeVisible();
   await expect(page.locator('#rankResult .rank-step')).toHaveCount(5);
   await expect(page.locator('#profileRank')).toContainText('Amethyst');
-  expect(await points(page)).toBe(150);
+  expect(await points(page)).toBe(150 + 20);   // +20 map coins for a finished lesson
 
   await page.reload();
   await expect(page.locator('#profileRank')).toContainText('Amethyst');

@@ -296,7 +296,7 @@ test('boss: defeating it gives a reward, then it waits for next week', async ({ 
   const p = await profileOf(page);
   expect(p.boss.defeated).toBe(true);
   expect(p.bossesDefeated).toBe(1);
-  expect(await points(page)).toBe(10 + 300);
+  expect(await points(page)).toBe(10 + 300 + 20);   // + map coins for the finished lesson
   await press(page.locator('#closeBtn'));
   await expect(page.locator('#bossPlayBtn')).toBeDisabled();
   await expect(page.locator('#bossPlayBtn')).toHaveText('Beaten! ✅');

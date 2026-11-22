@@ -71,14 +71,17 @@
     <h3 class="map-land-title" id="mapLandTitle"></h3>
     <div class="map-path" id="mapPath" aria-hidden="true"></div>
     <p class="map-status" id="mapStatus" role="status"></p>
+    <p class="map-prize" id="mapPrize"></p>
     <button type="button" class="primary map-boss-btn" id="mapBossBtn" hidden></button>
     <div class="map-lands" id="mapLands"></div>
+    <button type="button" class="sound-btn sticker-shortcut" id="stickerShortcut">🎴 My sticker album</button>
   </section>
 
   <section class="profile-shop den-section" id="denSection" aria-label="Fox’s Den">
     <div class="section-title" style="margin-top:0"><div><h2 id="denTitle">🏠 Fox’s Den</h2><p>Decorate your fox’s bedroom! Colours are free; furniture and decorations cost points.</p></div></div>
     <div class="den-room" id="denRoom" role="img" aria-label="Your fox’s bedroom"></div>
-    <div class="profile-name"><button type="button" class="primary" id="denEditBtn" aria-expanded="false">🎨 Decorate</button></div>
+    <div class="profile-name"><button type="button" class="primary" id="denEditBtn" aria-expanded="false">🎨 Decorate</button><button type="button" class="sound-btn" id="denMoveBtn" aria-pressed="false">✋ Move things</button></div>
+    <div class="den-move-help" id="denMoveHelp" hidden>Drag anything in the room to move it. <button type="button" class="sound-btn" id="denResetBtn">↺ Put everything back</button></div>
     <div class="den-editor" id="denEditor" hidden>
       <div class="shop-tabs den-tabs" id="denTabs" role="tablist" aria-label="Decorate"></div>
       <div id="denOptions" class="den-options"></div>

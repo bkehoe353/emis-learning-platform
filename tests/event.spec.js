@@ -124,7 +124,7 @@ test('fashion event: 2 lessons unlock Day 1 (+100 points), shown on the prize sc
   await press(page.getByRole('button', { name: '🎁 Claim Day 1 reward' }));
   await expect(page.locator('#prizeReveal')).toBeVisible();
   await expect(page.locator('#revealName')).toHaveText('100 points');
-  expect(await points(page)).toBe(100);
+  expect(await points(page)).toBe(100 + 2 * 20);   // + map coins from the 2 lessons
   await closePrizeScreen(page);
   await expect(page.locator('#eventStatus')).toContainText('Come back tomorrow for Day 2');
 

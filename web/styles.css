@@ -365,3 +365,60 @@ body.december::before{content:'';position:fixed;inset:0;pointer-events:none;z-in
 .den-item button.owned{background:#d9f8ec;color:#17694f}
 .den-item button.confirm{background:#ffd65a;color:var(--ink)}
 .den-item button:disabled{opacity:.7}
+
+/* --- Den: movable things --- */
+.den-scene{position:absolute;inset:0}
+.den-movable{position:absolute;right:auto!important;top:auto!important}
+.den-room.moving{touch-action:none}
+.den-room.moving .den-movable{cursor:grab;outline:2px dashed #7357d9aa;outline-offset:2px;border-radius:6px}
+.den-room.moving .den-movable.dragging{cursor:grabbing;outline:3px solid #7357d9;filter:drop-shadow(0 8px 10px #0004)}
+.den-move-help{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800;color:#5b43ba;margin:4px 0}
+.den-wardrobe{width:14%;height:50%}
+.den-tv{width:16%;height:24%}
+.den-sofa.couch{width:24%;height:18%}.den-sofa.armchair{width:12%;height:18%}
+.den-bedside{width:7%;height:12%}
+.den-lamp.desk{font-size:1.8em}
+.den-lamp.lava{width:3%;height:13%}
+.den-poster{width:12%;height:22%}
+.sticker-shortcut{margin-top:10px}
+
+/* --- Den: the four-legged fox --- */
+.den-walker{position:absolute;bottom:4%;width:15%;z-index:97;pointer-events:none;--face:1}
+.den-walker-body{position:relative;transform:scaleX(var(--face));transition:transform .25s}
+.den-walker .fox-svg{width:100%;height:auto;display:block;overflow:visible}
+.den-walker .den-fox-hat{position:absolute;left:77%;top:-16%;transform:translateX(-50%);font-size:1.4em;line-height:1;transition:top .6s,left .6s}
+.den-walker.sleeping .den-fox-hat{left:72%;top:22%}
+.fox-svg .leg{transform-box:fill-box;transform-origin:50% 0}
+.fox-svg .fox-tail{transform-box:fill-box;transform-origin:100% 80%;animation:fox-tail 2.4s ease-in-out infinite}
+.fox-svg .fox-head{transform-box:fill-box;transform-origin:30% 80%;transition:transform .6s}
+.fox-svg .fox-eye-shut{display:none}
+@keyframes fox-tail{50%{transform:rotate(8deg)}}
+.den-walker.walking .leg-b1,.den-walker.walking .leg-f2{animation:fox-leg .45s ease-in-out infinite}
+.den-walker.walking .leg-b2,.den-walker.walking .leg-f1{animation:fox-leg .45s ease-in-out infinite reverse}
+.den-walker.walking .fox-svg{animation:fox-trot .45s ease-in-out infinite}
+@keyframes fox-leg{0%{transform:rotate(22deg)}50%{transform:rotate(-22deg)}100%{transform:rotate(22deg)}}
+@keyframes fox-trot{50%{transform:translateY(-3%)}}
+/* Asleep: legs tucked under, body down, head resting, eyes shut, tail wrapped round */
+.den-walker.sleeping .leg{transform:scaleY(.2)}
+.den-walker.sleeping .fox-svg{transform:translateY(16%)}
+.den-walker.sleeping .fox-head{transform:translate(-6%,22%) rotate(14deg)}
+.den-walker.sleeping .fox-eye{display:none}
+.den-walker.sleeping .fox-eye-shut{display:inline}
+.den-walker.sleeping .fox-tail{animation:none;transform:rotate(-38deg) translate(10%,22%)}
+.den-zzz{position:absolute;right:-6%;top:-30%;font-size:1.3em;opacity:0;pointer-events:none}
+.den-walker.sleeping .den-zzz{animation:fox-zzz 2.4s ease-in-out infinite}
+@keyframes fox-zzz{0%{opacity:0;transform:translateY(10px) scale(.7)}30%{opacity:1}100%{opacity:0;transform:translateY(-14px) scale(1.1)}}
+/* In move mode only the drawn parts of furniture can be grabbed, so things behind empty corners stay reachable */
+.den-room.moving .den-movable{pointer-events:none}
+.den-room.moving .den-movable svg{pointer-events:none}
+.den-room.moving .den-movable svg *{pointer-events:visiblePainted}
+.den-room.moving .den-decor,.den-room.moving .den-poster,.den-room.moving .den-rug,.den-room.moving .den-lamp.desk{pointer-events:auto}
+.map-prize{margin:0 0 8px;color:#5b43ba;font-weight:700;font-size:.92rem}
+/* What the den fox is wearing (positions are for a fox facing right; it flips when it turns) */
+.den-walker .fox-wear{position:absolute;transform:translateX(-50%);line-height:1;transition:top .6s,left .6s;pointer-events:none}
+.den-walker .fox-wear.face{left:83%;top:22%;font-size:.95em}
+.den-walker .fox-wear.neck{left:69%;top:40%;font-size:1em}
+.den-walker .fox-wear.ear{left:73%;top:-6%;font-size:.8em}
+.den-walker.sleeping .fox-wear.face{left:78%;top:46%}
+.den-walker.sleeping .fox-wear.neck{left:66%;top:56%}
+.den-walker.sleeping .fox-wear.ear{left:70%;top:24%}
